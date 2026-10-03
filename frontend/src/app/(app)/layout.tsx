@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { MeResponse } from '@opsflow/shared';
 import { api, ApiError } from '@/lib/api';
+import { NotificationBell } from '@/components/NotificationBell';
 import { MeContext } from '@/lib/me-context';
 
 export default function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
@@ -41,6 +42,7 @@ export default function AuthenticatedLayout({ children }: { children: React.Reac
           </Link>
         </nav>
         <div className="flex items-center gap-4 text-sm">
+          <NotificationBell />
           <span>{me.user.email}</span>
           <button onClick={logout} className="text-indigo-700 underline">
             Sign out

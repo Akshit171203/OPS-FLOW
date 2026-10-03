@@ -22,7 +22,7 @@ import { allowedTransitions, assertTransition } from './stateMachine';
 
 type Row = NonNullable<IncidentRow>;
 
-const toDto = (r: Row): IncidentDto => ({
+export const toIncidentDto = (r: NonNullable<IncidentRow>): IncidentDto => ({
   id: r.id,
   serviceId: r.serviceId,
   serviceName: r.serviceName,
@@ -97,18 +97,18 @@ async function applyChange(
     resourceId: current.id,
     metadata: event.metadata,
   });
-  return toDto(await requireIncident(tx, ctx, current.id));
+  return toIncidentDto(await requireIncident(tx, ctx, current.id));
 }
 
 export const incidentsService = {
   async list(ctx: RequestContext, q: ListIncidentsQuery): Promise<Paginated<IncidentDto>> {
     const { rows, total } = await repo.list(db, ctx.actor.organizationId, q);
-    return paginated(rows.map(toDto), total, q);
+    return paginated(rows.map(toIncidentDto), total, q);
   },
 
   async get(ctx: RequestContext, id: string): Promise<IncidentDetailResponse> {
     const orgId = ctx.actor.organizationId;
-    const incident = toDto(await requireIncident(db, ctx, id));
+    const incident = toIncidentDto(await requireIncident(db, ctx, id));
     const [events, comments] = await Promise.all([
       repo.listEvents(db, orgId, id),
       repo.listComments(db, orgId, id),
@@ -172,7 +172,7 @@ export const incidentsService = {
         resourceId: id,
         metadata,
       });
-      return toDto(await requireIncident(tx, ctx, id));
+      return toIncidentDto(await requireIncident(tx, ctx, id));
     });
     await emitIncidentEvent(ctx, incident, 'created');
     return incident;
@@ -269,7 +269,7 @@ export const incidentsService = {
     const orgId = ctx.actor.organizationId;
     let incident!: IncidentDto;
     const comment = await db.transaction(async (tx) => {
-      incident = toDto(await requireIncident(tx, ctx, id));
+      incident = toIncidentDto(await requireIncident(tx, ctx, id));
       const { id: commentId } = await repo.insertComment(tx, {
         organizationId: orgId,
         incidentId: id,

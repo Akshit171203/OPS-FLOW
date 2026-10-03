@@ -1,4 +1,4 @@
-import { and, count, desc, eq } from 'drizzle-orm';
+import { and, count, desc, eq, inArray } from 'drizzle-orm';
 import type { ServiceStatus } from '@opsflow/shared';
 import type { Executor } from '../../db/client';
 import { projects, services } from '../../db/schema';
@@ -15,6 +15,16 @@ const selection = {
 };
 
 export const servicesRepository = {
+  /** Which of these ids are services of the organization (used to validate batch input). */
+  async existingIds(ex: Executor, organizationId: string, ids: string[]): Promise<Set<string>> {
+    if (ids.length === 0) return new Set();
+    const rows = await ex
+      .select({ id: services.id })
+      .from(services)
+      .where(and(eq(services.organizationId, organizationId), inArray(services.id, ids)));
+    return new Set(rows.map((r) => r.id));
+  },
+
   async list(ex: Executor, organizationId: string, p: Pagination, projectId?: string) {
     const where = and(
       eq(services.organizationId, organizationId),
@@ -33,6 +43,15 @@ export const servicesRepository = {
       .from(services)
       .where(where);
     return { rows, total };
+  },
+  async findBySlug(ex: Executor, organizationId: string, slug: string) {
+    const [row] = await ex
+      .select(selection)
+      .from(services)
+      .innerJoin(projects, eq(projects.id, services.projectId))
+      .where(and(eq(services.organizationId, organizationId), eq(services.slug, slug)))
+      .limit(1);
+    return row;
   },
   async find(ex: Executor, organizationId: string, id: string) {
     const [row] = await ex

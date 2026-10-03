@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { contextFrom } from '../../lib/context';
 import { parse } from '../../lib/validate';
 import { requireAuth, requireRole } from '../../middleware/auth';
+import { metricsService } from '../metrics/service';
 import { IdParamsSchema } from '../projects/schemas';
 import { CreateServiceSchema, ListServicesQuerySchema, UpdateServiceSchema } from './schemas';
 import { servicesService } from './service';
@@ -29,4 +30,9 @@ servicesRouter.patch('/:id', ...requireRole('ADMIN'), async (req, res) => {
     parse(UpdateServiceSchema, req.body),
   );
   res.json({ service });
+});
+
+servicesRouter.get('/:id/metrics/latest', requireAuth, async (req, res) => {
+  const { id } = parse(IdParamsSchema, req.params);
+  res.json({ metric: await metricsService.latest(contextFrom(req), id) });
 });

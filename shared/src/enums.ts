@@ -24,3 +24,23 @@ export const incidentTransitions: Record<IncidentStatus, readonly IncidentStatus
   RESOLVED: ['CLOSED'],
   CLOSED: [],
 };
+
+// ---------------------------------------------------------------------------
+// Phase 4: operational data and realtime
+// ---------------------------------------------------------------------------
+
+export const logLevels = ['DEBUG', 'INFO', 'WARN', 'ERROR'] as const;
+export type LogLevel = (typeof logLevels)[number];
+
+export const deploymentStatuses = ['SUCCESS', 'FAILED', 'ROLLED_BACK', 'IN_PROGRESS'] as const;
+export type DeploymentStatus = (typeof deploymentStatuses)[number];
+
+/** Socket.IO event names the server emits and the client subscribes to. */
+export const realtimeEvents = [
+  'incident.created',
+  'incident.updated',
+  'incident.status_changed',
+  'incident.comment_added',
+  'notification.created',
+] as const;
+export type RealtimeEventName = (typeof realtimeEvents)[number];

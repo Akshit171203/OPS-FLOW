@@ -26,6 +26,13 @@ export const projectsRepository = {
       .where(and(eq(projects.organizationId, organizationId), eq(projects.id, id)));
     return row;
   },
+  async findBySlug(ex: Executor, organizationId: string, slug: string) {
+    const [row] = await ex
+      .select()
+      .from(projects)
+      .where(and(eq(projects.organizationId, organizationId), eq(projects.slug, slug)));
+    return row;
+  },
   async insert(
     ex: Executor,
     v: { organizationId: string; name: string; slug: string; description?: string },

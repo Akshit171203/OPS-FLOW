@@ -12,7 +12,9 @@ import {
 } from '@opsflow/shared';
 import { api, ApiError } from '@/lib/api';
 import { formatDate } from '@/lib/format';
+import { useIncidentRoom, useReconnect, useSocketEvent } from '@/lib/socket';
 import { useFetch } from '@/lib/useFetch';
+import { DeploymentsPanel, LogsPanel, MetricsLine } from '@/components/IncidentPanels';
 import { useMe } from '@/lib/me-context';
 import {
   buttonClass,
@@ -39,6 +41,8 @@ function describeEvent(e: IncidentEventDto, nameOf: (id: unknown) => string): st
       return m.to ? `assigned the incident to ${nameOf(m.to)}` : 'removed the assignee';
     case 'incident.comment_added':
       return 'added a comment';
+    case 'incident.deployment_linked':
+      return `linked deployment ${String(e.metadata.version)} to this incident`;
     case 'incident.updated': {
       const parts = Object.entries(m.changes ?? {}).map(
         ([field, c]) => `${field} ${String(c.from ?? '—')} → ${String(c.to ?? '—')}`,
@@ -59,6 +63,19 @@ export default function IncidentDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [comment, setComment] = useState('');
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  // Live updates: any change to this incident (by anyone) refreshes the page without a reload.
+  useIncidentRoom(id);
+  const refresh = () => {
+    detail.reload();
+    setRefreshKey((k) => k + 1);
+  };
+  const onLive = (d: { incidentId: string }) => d.incidentId === id && refresh();
+  useSocketEvent<{ incidentId: string }>('incident.updated', onLive);
+  useSocketEvent<{ incidentId: string }>('incident.status_changed', onLive);
+  useSocketEvent<{ incidentId: string }>('incident.comment_added', onLive);
+  useReconnect(refresh);
 
   if (detail.error && !detail.data) return <ErrorText>{detail.error}</ErrorText>;
   if (!detail.data) return <p className="text-slate-500">Loading…</p>;
@@ -168,6 +185,9 @@ export default function IncidentDetailPage() {
         <div className="mt-3">
           <ErrorText>{error}</ErrorText>
         </div>
+        <div className="mt-4 border-t border-slate-100 pt-3">
+          <MetricsLine serviceId={incident.serviceId} refreshKey={refreshKey} />
+        </div>
       </header>
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -214,6 +234,16 @@ export default function IncidentDetailPage() {
             ))}
           </ol>
         </section>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <LogsPanel incidentId={id} refreshKey={refreshKey} />
+        <DeploymentsPanel
+          incidentId={id}
+          canLink={canWrite}
+          refreshKey={refreshKey}
+          onLinked={detail.reload}
+        />
       </div>
     </article>
   );

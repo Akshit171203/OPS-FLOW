@@ -108,3 +108,45 @@ The person who made the change is never notified of it. Created: the assignee an
 ### Two processes, one image
 
 The API and the worker are separate entry points (`server.ts`, `worker.ts`) built from one backend image with different commands. The application containers sit behind a Compose `app` profile so a plain `docker compose up` still starts only Postgres and Redis for local development. The Dockerfile is deliberately minimal; production hardening belongs to Phase 8.
+
+## Phase 4: Realtime and operational data
+
+### Redis pub/sub between processes, Socket.IO only in the API
+
+Workers run in a separate process and cannot hold sockets. Instead of the Socket.IO Redis adapter, every producer (the API after a commit, or the worker after creating notifications) publishes a small validated envelope `{ rooms, event, data }` to one Redis channel, and every API instance subscribes and re-emits to its connected sockets. This uses only ioredis, needs no extra dependency, scales to several API instances (each subscribes), and lets any future process push live updates. Malformed messages are dropped and logged, never forwarded.
+
+### Incident events go out from the API, `notification.created` from the worker
+
+Incident changes are pushed to browsers directly after the commit, in parallel with queuing the domain event for the worker, so live updates do not depend on the worker being up. Only `notification.created` comes from the worker, because the worker is what creates notifications. Realtime is deliberately best effort: failures are logged, never thrown, and the pages refetch after a socket reconnect. The database remains the source of truth.
+
+### Socket authentication and rooms
+
+The handshake reads the same HttpOnly session cookie and re-checks organization membership in the database (shared with the HTTP middleware, so there is one definition of "authenticated"). Each socket joins `org:<id>` and `user:<id>` automatically from its verified identity. Clients cannot name rooms: the only way into an incident room is `incident:join`, which checks the incident belongs to the caller's organization and answers another tenant's incident with the same "not found" as a missing one. Known limit: a socket keeps its rooms until it disconnects, so removing a member does not drop their live connection immediately.
+
+### Same-origin socket path
+
+The socket lives at `/api/socket.io`, under the existing `/api` rewrite, so it uses the first-party cookie and works behind the Next proxy for both polling and websocket. Next's rewrite drops trailing slashes, so Socket.IO's default `/api/socket.io/` returned 404 through the proxy; both server and client set `addTrailingSlash: false`.
+
+### Log timestamps are set from JavaScript, pagination is keyset
+
+Logs are listed newest first with an opaque cursor over `(timestamp, id)`: stable under concurrent inserts and constant cost per page, unlike OFFSET. Postgres `now()` has microsecond precision but a cursor carries a JavaScript millisecond timestamp, which would make rows with the same millisecond skip or repeat across pages; so ingestion always sets the timestamp explicitly in JavaScript. The ID tiebreak is covered by a test with ten rows sharing one timestamp. Text search is `ILIKE` with `%`, `_` and `\` escaped; a trigram index is the next step if volume grows.
+
+### Batch ingestion is all or nothing
+
+A batch is capped at 500 entries and validated as a whole (every service and incident must belong to the caller's organization) before a single insert, so a rejected batch stores nothing.
+
+### Metrics mirror health onto the service, newest wins
+
+A new snapshot updates the service status only if it is at least as new as the latest one, so a late-arriving old snapshot cannot overwrite current health. When the sender gives no health label it is derived: error rate at least 50% is DOWN, at least 5% or latency at least one second is DEGRADED, otherwise HEALTHY.
+
+### Deployment linking
+
+A deployment must belong to the same service and organization as the incident, each pair can be linked once (409 `ALREADY_LINKED`), and linking writes a timeline event and an audit log in one transaction. The incident's deployment list uses a window before the incident's start (default 48 hours) and reports which entries are already linked.
+
+### Simulate reuses the real code paths
+
+The Simulate endpoint (ADMIN and above) calls the same service functions as normal use (create incident, ingest logs, ingest metrics, create and link a deployment), so events, notifications, the timeline, the audit log and live updates behave exactly as in real use. It records v2.4.0 as deployed 15 minutes earlier, reuses a recent v2.4.0 if one exists, and creates the project and payment service when an organization has none, so the button works anywhere. Two thirds of the outage's error lines are connection pool exhaustion. The seed supplies the baseline (users per role, five services, a week of hourly healthy metrics, deployment history, about fifty routine log lines) so that the outage itself can be replayed on demand.
+
+### Seed safety
+
+`pnpm db:seed` recreates the demo organization from scratch (repeatable), refuses to run when `NODE_ENV=production`, and uses a published demo password for demo-only accounts.

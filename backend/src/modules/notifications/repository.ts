@@ -37,8 +37,8 @@ export const notificationsRepository = {
   },
 
   async insertMany(ex: Executor, rows: (typeof notifications.$inferInsert)[]) {
-    if (rows.length === 0) return;
-    await ex.insert(notifications).values(rows).onConflictDoNothing();
+    if (rows.length === 0) return [];
+    return ex.insert(notifications).values(rows).onConflictDoNothing().returning();
   },
 
   async list(

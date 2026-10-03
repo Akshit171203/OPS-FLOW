@@ -114,3 +114,59 @@ export interface IncidentDetailResponse {
 
 export * from './enums';
 export * from './events';
+
+import type { DeploymentStatus, LogLevel } from './enums';
+
+export interface LogDto {
+  id: string;
+  serviceId: string;
+  serviceName: string;
+  incidentId: string | null;
+  level: LogLevel;
+  message: string;
+  requestId: string | null;
+  metadata: Record<string, unknown>;
+  timestamp: string;
+}
+
+export interface CursorPage<T> {
+  items: T[];
+  nextCursor: string | null;
+}
+
+export interface DeploymentDto {
+  id: string;
+  serviceId: string;
+  serviceName: string;
+  version: string;
+  commitSha: string;
+  environment: string;
+  deployedBy: string;
+  deployedAt: string;
+  status: DeploymentStatus;
+  /** Set when listing for an incident: has this deployment been linked to it? */
+  linked?: boolean;
+}
+
+export interface MetricDto {
+  id: string;
+  serviceId: string;
+  errorRate: number;
+  latencyMs: number;
+  requestsPerMin: number;
+  healthStatus: ServiceStatus;
+  capturedAt: string;
+}
+
+export interface SimulateResult {
+  incident: IncidentDto;
+  logsInserted: number;
+  deployment: DeploymentDto;
+}
+
+/** Payload of the realtime incident events. */
+export interface IncidentRealtimeData {
+  incidentId: string;
+  incident?: IncidentDto;
+  commentId?: string;
+}

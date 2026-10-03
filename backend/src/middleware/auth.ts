@@ -47,12 +47,11 @@ export function clearAuthCookie(res: Response) {
 }
 
 /**
- * Verifies the signed cookie, then re-checks membership in the database so a removed
- * member or changed role takes effect immediately. The organization comes from the
- * signed token + membership row, never from a client-supplied header.
+ * Verifies a signed session token, then re-checks membership in the database so a removed
+ * member or changed role takes effect immediately. The organization comes from the signed
+ * token + membership row, never from a client-supplied header. Shared by HTTP and sockets.
  */
-export async function requireAuth(req: Request, _res: Response, next: NextFunction): Promise<void> {
-  const token = req.cookies?.[COOKIE_NAME] as string | undefined;
+export async function authenticateToken(token: string | undefined): Promise<AuthContext> {
   if (!token) throw new UnauthorizedError();
 
   let payload: TokenPayload;
@@ -81,9 +80,13 @@ export async function requireAuth(req: Request, _res: Response, next: NextFuncti
       ),
     );
   if (!row) throw new UnauthorizedError('Invalid or expired session');
+  return row;
+}
 
-  req.auth = row;
-  req.log = req.log.child({ user_id: row.userId, org_id: row.organizationId });
+export async function requireAuth(req: Request, _res: Response, next: NextFunction): Promise<void> {
+  const auth = await authenticateToken(req.cookies?.[COOKIE_NAME] as string | undefined);
+  req.auth = auth;
+  req.log = req.log.child({ user_id: auth.userId, org_id: auth.organizationId });
   next();
 }
 

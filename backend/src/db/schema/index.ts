@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm';
 import {
   check,
+  doublePrecision,
   index,
   integer,
   jsonb,
@@ -11,7 +12,15 @@ import {
   unique,
   uuid,
 } from 'drizzle-orm/pg-core';
-import { incidentStatuses, priorities, roles, serviceStatuses, severities } from '@opsflow/shared';
+import {
+  deploymentStatuses,
+  incidentStatuses,
+  logLevels,
+  priorities,
+  roles,
+  serviceStatuses,
+  severities,
+} from '@opsflow/shared';
 
 export const roleEnum = pgEnum('role', roles);
 
@@ -202,4 +211,86 @@ export const notifications = pgTable(
     unique('notifications_event_user_unique').on(t.eventId, t.userId),
     index('notifications_user_created_idx').on(t.userId, t.createdAt),
   ],
+);
+
+export const logLevelEnum = pgEnum('log_level', logLevels);
+export const deploymentStatusEnum = pgEnum('deployment_status', deploymentStatuses);
+
+export const logs = pgTable(
+  'logs',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    organizationId: orgId(),
+    serviceId: uuid('service_id')
+      .notNull()
+      .references(() => services.id, { onDelete: 'cascade' }),
+    incidentId: uuid('incident_id').references(() => incidents.id, { onDelete: 'set null' }),
+    level: logLevelEnum('level').notNull(),
+    message: text('message').notNull(),
+    requestId: text('request_id'),
+    metadata: jsonb('metadata').$type<Record<string, unknown>>().notNull().default({}),
+    timestamp: timestamp('timestamp', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('logs_service_timestamp_idx').on(t.serviceId, t.timestamp),
+    index('logs_incident_timestamp_idx').on(t.incidentId, t.timestamp),
+    index('logs_org_timestamp_idx').on(t.organizationId, t.timestamp),
+  ],
+);
+
+export const metrics = pgTable(
+  'metrics',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    organizationId: orgId(),
+    serviceId: uuid('service_id')
+      .notNull()
+      .references(() => services.id, { onDelete: 'cascade' }),
+    /** Fraction of failed requests, 0 to 1. */
+    errorRate: doublePrecision('error_rate').notNull(),
+    latencyMs: integer('latency_ms').notNull(),
+    requestsPerMin: integer('requests_per_min').notNull(),
+    healthStatus: serviceStatusEnum('health_status').notNull(),
+    capturedAt: timestamp('captured_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('metrics_service_captured_idx').on(t.serviceId, t.capturedAt),
+    check('metrics_error_rate_check', sql`${t.errorRate} >= 0 AND ${t.errorRate} <= 1`),
+  ],
+);
+
+export const deployments = pgTable(
+  'deployments',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    organizationId: orgId(),
+    serviceId: uuid('service_id')
+      .notNull()
+      .references(() => services.id, { onDelete: 'cascade' }),
+    version: text('version').notNull(),
+    commitSha: text('commit_sha').notNull(),
+    environment: text('environment').notNull().default('production'),
+    deployedBy: text('deployed_by').notNull(),
+    deployedAt: timestamp('deployed_at', { withTimezone: true }).notNull().defaultNow(),
+    status: deploymentStatusEnum('status').notNull().default('SUCCESS'),
+  },
+  (t) => [index('deployments_service_deployed_idx').on(t.serviceId, t.deployedAt)],
+);
+
+export const incidentDeployments = pgTable(
+  'incident_deployments',
+  {
+    incidentId: uuid('incident_id')
+      .notNull()
+      .references(() => incidents.id, { onDelete: 'cascade' }),
+    deploymentId: uuid('deployment_id')
+      .notNull()
+      .references(() => deployments.id, { onDelete: 'cascade' }),
+    organizationId: orgId(),
+    linkedBy: uuid('linked_by')
+      .notNull()
+      .references(() => users.id),
+    createdAt: createdAt(),
+  },
+  (t) => [unique('incident_deployments_unique').on(t.incidentId, t.deploymentId)],
 );

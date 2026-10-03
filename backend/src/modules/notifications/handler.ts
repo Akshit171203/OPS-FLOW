@@ -1,5 +1,7 @@
 import type { AppEvent } from '@opsflow/shared';
+import { notificationToDto } from './service';
 import { processOnce } from '../../lib/idempotency';
+import { publishRealtime, rooms } from '../../realtime/channel';
 import { notificationsRepository as repo } from './repository';
 import { recipientsFor } from './recipients';
 
@@ -26,8 +28,17 @@ export async function handleEvent(event: AppEvent): Promise<{ created: number }>
         payload: { message: r.message, incidentId: r.incidentId },
         metadata: { requestId: event.requestId, eventType: event.type },
       }));
-    await repo.insertMany(tx, rows);
-    return rows.length;
+    return repo.insertMany(tx, rows);
   });
-  return { created: outcome.ran ? outcome.result : 0 };
+  if (!outcome.ran) return { created: 0 };
+
+  // After commit: tell each recipient's open browser tabs. Best effort, never throws.
+  await Promise.all(
+    outcome.result.map((row) =>
+      publishRealtime([rooms.user(row.userId)], 'notification.created', {
+        notification: notificationToDto(row),
+      }),
+    ),
+  );
+  return { created: outcome.result.length };
 }

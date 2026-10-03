@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   incidentStatuses,
   roleRank,
@@ -9,8 +10,11 @@ import {
   type IncidentDto,
   type Paginated,
   type ServiceDto,
+  type SimulateResult,
 } from '@opsflow/shared';
+import { api, ApiError } from '@/lib/api';
 import { formatDate } from '@/lib/format';
+import { useReconnect, useSocketEvent } from '@/lib/socket';
 import { useFetch } from '@/lib/useFetch';
 import { useMe } from '@/lib/me-context';
 import {
@@ -26,7 +30,11 @@ const PAGE_SIZE = 10;
 
 export default function IncidentsPage() {
   const me = useMe();
+  const router = useRouter();
   const canCreate = roleRank[me.role] >= roleRank.ENGINEER;
+  const isAdmin = roleRank[me.role] >= roleRank.ADMIN;
+  const [simulating, setSimulating] = useState(false);
+  const [simError, setSimError] = useState<string | null>(null);
   const [filters, setFilters] = useState({ status: '', severity: '', serviceId: '' });
   const [page, setPage] = useState(1);
 
@@ -35,6 +43,24 @@ export default function IncidentsPage() {
 
   const incidents = useFetch<Paginated<IncidentDto>>(`/api/incidents?${params}`);
   const services = useFetch<Paginated<ServiceDto>>('/api/services?limit=100');
+  // The list stays current while it is open: anyone's change in this organization refreshes it.
+  useSocketEvent('incident.created', incidents.reload);
+  useSocketEvent('incident.updated', incidents.reload);
+  useSocketEvent('incident.status_changed', incidents.reload);
+  useReconnect(incidents.reload);
+
+  async function simulate() {
+    setSimError(null);
+    setSimulating(true);
+    try {
+      const result = await api<SimulateResult>('/api/demo/simulate-incident', { method: 'POST' });
+      router.push(`/incidents/${result.incident.id}`);
+    } catch (e) {
+      setSimError(e instanceof ApiError ? e.message : 'Simulation failed');
+      setSimulating(false);
+    }
+  }
+
   const totalPages = Math.max(1, Math.ceil((incidents.data?.total ?? 0) / PAGE_SIZE));
 
   const setFilter = (key: keyof typeof filters) => (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -46,12 +72,20 @@ export default function IncidentsPage() {
     <section>
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Incidents</h1>
-        {canCreate && (
-          <Link href="/incidents/new" className={buttonClass}>
-            New incident
-          </Link>
-        )}
+        <div className="flex gap-2">
+          {isAdmin && (
+            <button className={secondaryButtonClass} onClick={simulate} disabled={simulating}>
+              {simulating ? 'Simulating…' : 'Simulate payment outage'}
+            </button>
+          )}
+          {canCreate && (
+            <Link href="/incidents/new" className={buttonClass}>
+              New incident
+            </Link>
+          )}
+        </div>
       </div>
+      <ErrorText>{simError}</ErrorText>
 
       <div className="mb-4 grid gap-3 sm:grid-cols-3">
         <select

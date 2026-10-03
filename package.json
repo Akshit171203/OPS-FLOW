@@ -15,7 +15,8 @@
     "format": "prettier --write .",
     "test": "pnpm --filter @opsflow/backend test",
     "db:generate": "pnpm --filter @opsflow/backend db:generate",
-    "db:migrate": "pnpm --filter @opsflow/backend db:migrate"
+    "db:migrate": "pnpm --filter @opsflow/backend db:migrate",
+    "db:seed": "pnpm --filter @opsflow/backend db:seed"
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",
