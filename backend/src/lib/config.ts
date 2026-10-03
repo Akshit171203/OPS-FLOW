@@ -14,6 +14,15 @@ const ConfigSchema = z.object({
   REDIS_URL: z.string().min(1),
   JWT_SECRET: z.string().min(32),
   JWT_EXPIRES_IN: z.string().default('7d'),
+  /** Number of reverse-proxy hops in front of the API (0 = none). Controls how req.ip is derived. */
+  TRUST_PROXY: z.coerce.number().int().min(0).default(0),
+  COOKIE_SAMESITE: z.enum(['lax', 'strict']).default('lax'),
+  COOKIE_DOMAIN: z.string().min(1).optional(),
+  DB_POOL_MAX: z.coerce.number().int().min(1).default(10),
+  DB_POOL_IDLE_MS: z.coerce.number().int().min(0).default(30_000),
+  DB_POOL_CONNECT_TIMEOUT_MS: z.coerce.number().int().min(1).default(5_000),
+  DB_STATEMENT_TIMEOUT_MS: z.coerce.number().int().min(0).default(15_000),
+  SHUTDOWN_TIMEOUT_MS: z.coerce.number().int().min(1).default(10_000),
   QUEUE_PREFIX: z.string().min(1).default('opsflow'),
   /** Comma-separated backoff delays (ms) applied after the 1st, 2nd, ... failed attempt. */
   RETRY_DELAYS_MS: z

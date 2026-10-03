@@ -1,5 +1,5 @@
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import request from 'supertest';
+import request from './request';
 import { eq, sql } from 'drizzle-orm';
 import { buildApp } from '../app';
 import { db, pool } from '../db/client';

@@ -1,5 +1,5 @@
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
-import request from 'supertest';
+import request from './request';
 import { buildApp } from '../app';
 import { pool } from '../db/client';
 import { resetDb, setupOrg } from './helpers';

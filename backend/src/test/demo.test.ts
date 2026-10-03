@@ -1,5 +1,5 @@
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
-import request from 'supertest';
+import request from './request';
 import { count, eq } from 'drizzle-orm';
 import type { PgTable } from 'drizzle-orm/pg-core';
 import { buildApp } from '../app';

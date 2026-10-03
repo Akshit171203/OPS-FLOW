@@ -1,8 +1,9 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import request from 'supertest';
+import request from './request';
 import type { Worker } from 'bullmq';
 import type { AppEvent, IncidentRealtimeData, NotificationDto } from '@opsflow/shared';
 import { pool } from '../db/client';
+import { config } from '../lib/config';
 import { getEventsQueue } from '../events/queues';
 import { createRedis } from '../lib/redis';
 import { REALTIME_CHANNEL } from '../realtime/channel';
@@ -41,6 +42,14 @@ describe('socket authentication', () => {
     await expect(h.connect()).rejects.toThrow('unauthorized');
     await expect(h.connect('opsflow_token=garbage')).rejects.toThrow('unauthorized');
     await expect(h.connect('other=1; opsflow_token=not.a.jwt')).rejects.toThrow('unauthorized');
+  });
+
+  it('rejects a handshake from another origin even with a valid cookie (cross-site WebSocket hijacking)', async () => {
+    await expect(h.connect(a.viewer, { origin: 'https://evil.example' })).rejects.toThrow();
+  });
+
+  it('accepts the web origin, and clients that send no Origin', async () => {
+    expect((await h.connect(a.viewer, { origin: config.WEB_ORIGIN })).connected).toBe(true);
   });
 
   it('accepts a valid session cookie', async () => {

@@ -1,5 +1,6 @@
 import type { Express } from 'express';
-import request from 'supertest';
+import type { Response } from 'supertest';
+import request from './request';
 import { expect } from 'vitest';
 import { sql } from 'drizzle-orm';
 import { db } from '../db/client';
@@ -12,7 +13,7 @@ export async function resetDb() {
 }
 
 /** Returns "opsflow_token=<jwt>" from a response's Set-Cookie header. */
-export function cookieFrom(res: request.Response): string {
+export function cookieFrom(res: Response): string {
   const raw = (res.headers['set-cookie'] as unknown as string[] | undefined)?.find((c) =>
     c.startsWith('opsflow_token='),
   );

@@ -150,3 +150,61 @@ The Simulate endpoint (ADMIN and above) calls the same service functions as norm
 ### Seed safety
 
 `pnpm db:seed` recreates the demo organization from scratch (repeatable), refuses to run when `NODE_ENV=production`, and uses a published demo password for demo-only accounts.
+
+## Phase 5: Redis hardening and security
+
+### Sliding-window rate limiter in a Lua script
+
+Each key is a Redis sorted set of hit timestamps. One Lua script drops hits older than the window, counts what is left, and either records the hit or returns how long until the oldest hit expires. It runs atomically (so 310 parallel requests against a limit of 300 admit exactly 300, which a test proves) and uses Redis' own clock, so several API instances agree. A sliding window avoids the burst a fixed window allows at its boundary (up to twice the limit across two adjacent windows) and its memory cost is bounded by the limit. A rejection is `429 RATE_LIMITED` with a whole-seconds `Retry-After`.
+
+### What is limited, and by what key
+
+Login: 5 per minute per IP and email, counting successful attempts too, so it cannot be used as a password oracle. A second, looser login limit of 20 per minute per email alone stops an attacker rotating IP addresses against one account. Incident creation: 20 per minute per user. Simulate: 6 per minute per user. Log ingestion: 300 requests per minute per organization. Registration: 10 per hour per IP. The AI analysis limit (10 per minute per user) is defined but only wired in Phase 6, when that endpoint exists.
+
+### Fail open on Redis errors for rate limits, fail soft for the cache, fail closed for locks
+
+If Redis is unavailable the rate limiter lets the request through and logs the error: losing throttling is a smaller harm than taking the whole API down with Redis. The cache falls back to the database. A lock is not taken silently: acquiring it needs Redis, so the operation errors rather than risking two concurrent runs. Verified against a really stopped Redis container: login and the dashboard kept working, `/ready` reported 503.
+
+### Client IP and `TRUST_PROXY`
+
+`req.ip` is only the real client when the number of proxy hops is configured. `TRUST_PROXY=1` matches the Next.js rewrite in front of the API. Without it every user would share the proxy's address and one person's failed logins would lock everyone out; with too high a value a client could forge `X-Forwarded-For`. The API must therefore not be reachable except through the proxy in production; the per-email backstop limits the damage if it is.
+
+### Read-through cache with TTL and explicit invalidation
+
+`getOrSet(key, ttl, loader)` serves cached JSON or loads and stores it. The dashboard is cached for 30 seconds and the service health view for 15, under `org:<id>:dashboard` and `org:<id>:service-health`, one entry per organization so tenants can never see each other's data. Every write that changes them (incident create or change, metrics snapshot, deployment, service change) invalidates after its commit, so users see their own change immediately. The TTL is the safety net if an invalidation is ever missed or a slow read repopulates just after one: staleness is bounded to the TTL, never indefinite. A cached request makes no database query beyond the authentication check (a test counts the queries).
+
+### Dashboard computed in SQL
+
+Open and critical counts, degraded services, recent deployments and mean resolution time are aggregates in the database, not loops in the application. Service health uses one `LATERAL` query for each service's newest snapshot instead of one query per service.
+
+### Locks: token ownership and a TTL
+
+`SET key token NX PX ttl` takes the lock; release is a Lua compare-and-delete, so a holder whose lock expired cannot free the next holder's lock (tested). The TTL frees the lock if the process dies. It guards Simulate, so a double-click creates one outage and the second request gets `409 LOCK_HELD`. This is a single-instance Redis lock, adequate for preventing duplicate work; it is not a fencing-token design and should not guard anything where a pause longer than the TTL would corrupt data.
+
+### CSRF: custom header plus Origin, on top of SameSite
+
+Session cookies are `HttpOnly` and `SameSite`, and every state-changing request is additionally checked twice: a browser-sent `Origin` must equal the web origin, and a request carrying the session cookie must send `X-Requested-With: opsflow`. A cross-site page cannot add that header without a CORS preflight, which strict CORS refuses. Unauthenticated writes (register, login) carry no session to forge, so they only get the Origin check. Tokens (double submit) would add state and complexity for no extra protection here.
+
+### CORS, WebSockets and headers
+
+CORS allows exactly the web origin with credentials; any other origin receives no CORS headers. WebSockets are not governed by CORS, so the Socket.IO handshake checks `Origin` itself, closing cross-site WebSocket hijacking. Since this is a JSON API, helmet is set to `default-src 'none'`, `frame-ancestors 'none'`, no referrer and same-site resource policy, and every response is `Cache-Control: no-store` so authenticated data is never cached by a browser or proxy.
+
+### Body limits
+
+100 KB for ordinary endpoints; 1 MB for log ingestion only, parsed first so the small limit does not apply to it. Oversized bodies are rejected with `413 PAYLOAD_TOO_LARGE`.
+
+### Cookie flags per environment
+
+`Secure` in production only (so `http://localhost` works in development), `SameSite` and `Domain` from configuration, and logout clears with identical attributes, because a browser ignores a clear that does not match the cookie's domain and path.
+
+### Liveness vs readiness
+
+`/health` says the process is up and checks nothing else, so an orchestrator does not restart a healthy API because Redis blinked. `/ready` checks Postgres and Redis with a 2 second timeout each and returns 503 if either fails, or once shutdown has begun, so load balancers stop routing to an instance that is draining.
+
+### Graceful shutdown
+
+On SIGTERM the API flips `/ready` to 503, stops accepting connections, lets in-flight requests finish, then closes queues, Redis and the database pool in order; a timer forces exit if something hangs. The worker stops taking jobs and waits for active ones. Verified on real processes: with a request deliberately held in flight, new connections were refused, the request still returned 200, and the process then exited. A test also shows a worker stopped mid-job completes that job once, with no retry.
+
+### Database pool
+
+`max` 10, idle clients recycled after 30 s, 5 s to acquire a connection (fail fast instead of queueing forever), and a 15 s server-side `statement_timeout` so a runaway query cannot hold a connection. The API and the worker each have a pool, so Postgres sees up to twice `DB_POOL_MAX`; that stays well below Postgres' default of 100 connections for a few instances. An error event on an idle client is logged instead of crashing the process. All values are environment settings.

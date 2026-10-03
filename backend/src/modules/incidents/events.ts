@@ -1,6 +1,7 @@
 import type { IncidentDto, IncidentRealtimeData, RealtimeEventName } from '@opsflow/shared';
 import { buildEvent, publishEvent, type NewEvent } from '../../events/publisher';
 import type { RequestContext } from '../../lib/context';
+import { invalidateOrgViews } from '../../lib/cache';
 import { publishRealtime, rooms } from '../../realtime/channel';
 
 export type IncidentChange =
@@ -60,6 +61,7 @@ export async function emitIncidentEvent(
     event = { type: 'incident.updated', payload: { ...facts, change, details } };
   }
   await Promise.all([
+    invalidateOrgViews(ctx.actor.organizationId), // open/critical counts and resolution time changed
     publishEvent(
       buildEvent(event, { organizationId: ctx.actor.organizationId, requestId: ctx.requestId }),
     ),

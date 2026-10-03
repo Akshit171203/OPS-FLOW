@@ -9,7 +9,7 @@ export interface Harness {
   app: ReturnType<typeof buildApp>;
   url: string;
   close: () => Promise<void>;
-  connect: (cookie?: string) => Promise<Socket>;
+  connect: (cookie?: string, headers?: Record<string, string>) => Promise<Socket>;
   /** Resolves with the payload of the next `event` on `socket`, or rejects after `timeoutMs`. */
   next: <T = unknown>(socket: Socket, event: string, timeoutMs?: number) => Promise<T>;
   /** Asserts that `event` does NOT arrive on `socket` within `ms`. */
@@ -29,12 +29,12 @@ export async function createRealtimeTestHarness(): Promise<Harness> {
   return {
     app,
     url,
-    async connect(cookie) {
+    async connect(cookie, headers = {}) {
       const socket = connectClient(url, {
         path: '/api/socket.io',
         addTrailingSlash: false,
         transports: ['websocket'],
-        extraHeaders: cookie ? { cookie } : {},
+        extraHeaders: { ...(cookie ? { cookie } : {}), ...headers },
         reconnection: false,
       });
       sockets.push(socket);

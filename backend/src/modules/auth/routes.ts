@@ -2,19 +2,20 @@ import { Router } from 'express';
 import type { MeResponse } from '@opsflow/shared';
 import { clearAuthCookie, requireAuth, setAuthCookie, signToken } from '../../middleware/auth';
 import { parse } from '../../lib/validate';
+import { loginByEmailLimit, loginLimit, registerLimit } from '../../middleware/rateLimit';
 import { LoginSchema, RegisterSchema } from './schemas';
 import { authService } from './service';
 
 export const authRouter = Router();
 
-authRouter.post('/register', async (req, res) => {
+authRouter.post('/register', registerLimit, async (req, res) => {
   const input = parse(RegisterSchema, req.body);
   const { userId, organizationId } = await authService.register(input);
   setAuthCookie(res, signToken(userId, organizationId));
   res.status(201).json({ ok: true });
 });
 
-authRouter.post('/login', async (req, res) => {
+authRouter.post('/login', loginLimit, loginByEmailLimit, async (req, res) => {
   const input = parse(LoginSchema, req.body);
   const { userId, organizationId } = await authService.login(input);
   setAuthCookie(res, signToken(userId, organizationId));

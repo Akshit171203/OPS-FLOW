@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { contextFrom } from '../../lib/context';
 import { parse } from '../../lib/validate';
 import { requireAuth, requireRole } from '../../middleware/auth';
+import { createIncidentLimit } from '../../middleware/rateLimit';
 import { IdParamsSchema } from '../projects/schemas';
 import {
   AddCommentSchema,
@@ -21,7 +22,7 @@ incidentsRouter.get('/', requireAuth, async (req, res) => {
   );
 });
 
-incidentsRouter.post('/', ...requireRole('ENGINEER'), async (req, res) => {
+incidentsRouter.post('/', ...requireRole('ENGINEER'), createIncidentLimit, async (req, res) => {
   const incident = await incidentsService.create(
     contextFrom(req),
     parse(CreateIncidentSchema, req.body),

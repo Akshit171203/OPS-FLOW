@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { pino } from 'pino';
-import request from 'supertest';
+import request from './request';
 import { eq } from 'drizzle-orm';
 import type { Worker } from 'bullmq';
 import type { AppEvent } from '@opsflow/shared';

@@ -18,7 +18,11 @@ export async function api<T>(
   const res = await fetch(path, {
     ...rest,
     credentials: 'same-origin',
-    headers: { ...(json ? { 'content-type': 'application/json' } : {}), ...rest.headers },
+    headers: {
+      ...(json ? { 'content-type': 'application/json' } : {}),
+      'x-requested-with': 'opsflow', // CSRF protection: required on cookie-authenticated writes
+      ...rest.headers,
+    },
     body: json ? JSON.stringify(json) : rest.body,
   });
   if (!res.ok) {

@@ -3,6 +3,7 @@ import { db } from '../../db/client';
 import type { RequestContext } from '../../lib/context';
 import { ConflictError, NotFoundError, ValidationError } from '../../lib/errors';
 import { paginated, type Pagination } from '../../lib/pagination';
+import { invalidateOrgViews } from '../../lib/cache';
 import { auditRepository } from '../audit/repository';
 import { emitIncidentRealtime } from '../incidents/events';
 import { incidentsRepository } from '../incidents/repository';
@@ -20,7 +21,7 @@ const toDto = (r: Row & { linked?: boolean }): DeploymentDto => ({
 export const deploymentsService = {
   async create(ctx: RequestContext, input: CreateDeploymentInput): Promise<DeploymentDto> {
     const orgId = ctx.actor.organizationId;
-    return db.transaction(async (tx) => {
+    const created = await db.transaction(async (tx) => {
       if (!(await servicesRepository.find(tx, orgId, input.serviceId))) {
         throw new NotFoundError('Service not found', 'SERVICE_NOT_FOUND');
       }
@@ -42,6 +43,8 @@ export const deploymentsService = {
       });
       return toDto((await repo.find(tx, orgId, id))!);
     });
+    await invalidateOrgViews(orgId); // the dashboard lists recent deployments
+    return created;
   },
 
   async list(

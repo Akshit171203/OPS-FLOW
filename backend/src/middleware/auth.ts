@@ -32,18 +32,36 @@ export function signToken(userId: string, organizationId: string): string {
   });
 }
 
-export function setAuthCookie(res: Response, token: string) {
-  res.cookie(COOKIE_NAME, token, {
-    httpOnly: true,
-    sameSite: 'lax',
+export interface CookieSettings {
+  secure: boolean;
+  sameSite: 'lax' | 'strict';
+  domain?: string;
+}
+
+/** Cookie flags per environment: Secure in production, SameSite and Domain from configuration. */
+export function authCookieOptions(
+  settings: CookieSettings = {
     secure: isProduction,
+    sameSite: config.COOKIE_SAMESITE,
+    domain: config.COOKIE_DOMAIN,
+  },
+) {
+  return {
+    httpOnly: true,
+    secure: settings.secure,
+    sameSite: settings.sameSite,
     path: '/',
-    maxAge: COOKIE_MAX_AGE_MS,
-  });
+    ...(settings.domain ? { domain: settings.domain } : {}),
+  } as const;
+}
+
+export function setAuthCookie(res: Response, token: string) {
+  res.cookie(COOKIE_NAME, token, { ...authCookieOptions(), maxAge: COOKIE_MAX_AGE_MS });
 }
 
 export function clearAuthCookie(res: Response) {
-  res.clearCookie(COOKIE_NAME, { path: '/' });
+  // Must use the same domain/path attributes as when the cookie was set, or browsers keep it.
+  res.clearCookie(COOKIE_NAME, authCookieOptions());
 }
 
 /**

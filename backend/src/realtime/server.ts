@@ -30,6 +30,12 @@ export function attachRealtime(httpServer: HttpServer) {
     path: '/api/socket.io',
     // Next's /api rewrite drops a trailing slash, so serve (and request) the path without one
     addTrailingSlash: false,
+    // WebSockets are not covered by CORS, so check the Origin ourselves: a page on another site
+    // must not be able to open a socket with the victim's cookie. Non-browser clients send no Origin.
+    allowRequest: (req, callback) => {
+      const origin = req.headers.origin;
+      callback(null, !origin || origin === config.WEB_ORIGIN);
+    },
     cors: { origin: config.WEB_ORIGIN, credentials: true },
   });
 

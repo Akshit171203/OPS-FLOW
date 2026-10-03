@@ -8,6 +8,7 @@ const env = {
   JWT_SECRET: 'test-secret-test-secret-test-secret-123',
   WEB_ORIGIN: 'http://localhost:3000',
   QUEUE_PREFIX: 'opsflow-test',
+  TRUST_PROXY: '1',
   RETRY_DELAYS_MS: '30,30,30',
   LOG_LEVEL: 'silent',
 };

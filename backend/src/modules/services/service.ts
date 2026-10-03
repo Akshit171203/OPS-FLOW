@@ -4,6 +4,7 @@ import type { RequestContext } from '../../lib/context';
 import { isUniqueViolation } from '../../lib/dbErrors';
 import { ConflictError, NotFoundError } from '../../lib/errors';
 import { paginated, type Pagination } from '../../lib/pagination';
+import { invalidateOrgViews } from '../../lib/cache';
 import { auditRepository } from '../audit/repository';
 import { projectsRepository } from '../projects/repository';
 import { servicesRepository as repo } from './repository';
@@ -28,7 +29,7 @@ export const servicesService = {
   ) {
     const orgId = ctx.actor.organizationId;
     try {
-      return await db.transaction(async (tx) => {
+      const created = await db.transaction(async (tx) => {
         const project = await projectsRepository.find(tx, orgId, input.projectId);
         if (!project) throw new NotFoundError('Project not found', 'PROJECT_NOT_FOUND');
         const { id } = await repo.insert(tx, { organizationId: orgId, ...input });
@@ -40,6 +41,8 @@ export const servicesService = {
         });
         return toDto((await repo.find(tx, orgId, id))!);
       });
+      await invalidateOrgViews(orgId);
+      return created;
     } catch (err) {
       if (isUniqueViolation(err)) {
         throw new ConflictError('Service slug already in use in this project', 'SLUG_TAKEN');
@@ -50,7 +53,7 @@ export const servicesService = {
 
   async update(ctx: RequestContext, id: string, input: { name?: string; status?: ServiceStatus }) {
     const orgId = ctx.actor.organizationId;
-    return db.transaction(async (tx) => {
+    const result = await db.transaction(async (tx) => {
       const updated = await repo.update(tx, orgId, id, input);
       if (!updated) throw new NotFoundError('Service not found', 'SERVICE_NOT_FOUND');
       await auditRepository.insert(tx, ctx, {
@@ -61,5 +64,7 @@ export const servicesService = {
       });
       return toDto((await repo.find(tx, orgId, id))!);
     });
+    await invalidateOrgViews(orgId);
+    return result;
   },
 };

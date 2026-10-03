@@ -170,3 +170,21 @@ export interface IncidentRealtimeData {
   incident?: IncidentDto;
   commentId?: string;
 }
+
+export interface DashboardDto {
+  openIncidents: number;
+  criticalIncidents: number;
+  degradedServices: { id: string; name: string; status: ServiceStatus }[];
+  recentDeployments: DeploymentDto[];
+  /** Mean time from start to resolution over resolved incidents, or null when there are none. */
+  avgResolutionMinutes: number | null;
+  generatedAt: string;
+}
+
+export interface ServiceHealthDto {
+  id: string;
+  name: string;
+  projectName: string;
+  status: ServiceStatus;
+  latestMetric: MetricDto | null;
+}

@@ -32,6 +32,10 @@ servicesRouter.patch('/:id', ...requireRole('ADMIN'), async (req, res) => {
   res.json({ service });
 });
 
+servicesRouter.get('/health', requireAuth, async (req, res) => {
+  res.json({ services: await metricsService.serviceHealth(contextFrom(req)) });
+});
+
 servicesRouter.get('/:id/metrics/latest', requireAuth, async (req, res) => {
   const { id } = parse(IdParamsSchema, req.params);
   res.json({ metric: await metricsService.latest(contextFrom(req), id) });

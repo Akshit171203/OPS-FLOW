@@ -1,10 +1,11 @@
-import type { MetricDto, ServiceStatus } from '@opsflow/shared';
+import type { MetricDto, ServiceHealthDto, ServiceStatus } from '@opsflow/shared';
 import { db } from '../../db/client';
 import type { metrics } from '../../db/schema';
 import type { RequestContext } from '../../lib/context';
 import { NotFoundError } from '../../lib/errors';
 import { servicesRepository } from '../services/repository';
-import { metricsRepository as repo } from './repository';
+import { cacheKeys, getOrSet, invalidateOrgViews } from '../../lib/cache';
+import { listServiceHealth, metricsRepository as repo } from './repository';
 import type { IngestMetricInput } from './schemas';
 
 const toDto = (r: typeof metrics.$inferSelect): MetricDto => ({
@@ -28,7 +29,7 @@ export const metricsService = {
   /** Records a snapshot and, if it is the newest one, mirrors its health onto the service. */
   async ingest(ctx: RequestContext, input: IngestMetricInput): Promise<MetricDto> {
     const orgId = ctx.actor.organizationId;
-    return db.transaction(async (tx) => {
+    const metric = await db.transaction(async (tx) => {
       if (!(await servicesRepository.find(tx, orgId, input.serviceId))) {
         throw new NotFoundError('Service not found', 'SERVICE_NOT_FOUND');
       }
@@ -48,6 +49,32 @@ export const metricsService = {
       }
       return toDto(row);
     });
+    await invalidateOrgViews(orgId); // service health and the dashboard's degraded list changed
+    return metric;
+  },
+
+  /** Every service with its latest snapshot, cached for 15 seconds. */
+  serviceHealth(ctx: RequestContext): Promise<ServiceHealthDto[]> {
+    const orgId = ctx.actor.organizationId;
+    return getOrSet(cacheKeys.serviceHealth(orgId), 15, async () =>
+      (await listServiceHealth(db, orgId)).map((r) => ({
+        id: r.id,
+        name: r.name,
+        projectName: r.project_name,
+        status: r.status,
+        latestMetric: r.metric_id
+          ? {
+              id: r.metric_id,
+              serviceId: r.id,
+              errorRate: r.error_rate!,
+              latencyMs: r.latency_ms!,
+              requestsPerMin: r.requests_per_min!,
+              healthStatus: r.health_status!,
+              capturedAt: new Date(r.captured_at!).toISOString(),
+            }
+          : null,
+      })),
+    );
   },
 
   async latest(ctx: RequestContext, serviceId: string): Promise<MetricDto | null> {
