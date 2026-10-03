@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { MeResponse } from '@opsflow/shared';
 import { api, ApiError } from '@/lib/api';
@@ -28,7 +29,17 @@ export default function AuthenticatedLayout({ children }: { children: React.Reac
   return (
     <MeContext.Provider value={me}>
       <header className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-3">
-        <span className="font-semibold">OpsFlow</span>
+        <nav className="flex items-center gap-6">
+          <Link href="/" className="font-semibold">
+            OpsFlow
+          </Link>
+          <Link href="/incidents" className="text-sm text-slate-700 hover:text-indigo-700">
+            Incidents
+          </Link>
+          <Link href="/services" className="text-sm text-slate-700 hover:text-indigo-700">
+            Services
+          </Link>
+        </nav>
         <div className="flex items-center gap-4 text-sm">
           <span>{me.user.email}</span>
           <button onClick={logout} className="text-indigo-700 underline">

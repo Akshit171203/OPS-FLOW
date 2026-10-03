@@ -40,3 +40,99 @@ export interface MemberDto {
   name: string;
   role: Role;
 }
+
+// ---------------------------------------------------------------------------
+// Phase 2: core domain
+// ---------------------------------------------------------------------------
+
+export const serviceStatuses = ['HEALTHY', 'DEGRADED', 'DOWN', 'UNKNOWN'] as const;
+export type ServiceStatus = (typeof serviceStatuses)[number];
+
+export const severities = ['SEV1', 'SEV2', 'SEV3', 'SEV4'] as const;
+export type Severity = (typeof severities)[number];
+
+export const priorities = ['LOW', 'MEDIUM', 'HIGH', 'URGENT'] as const;
+export type Priority = (typeof priorities)[number];
+
+export const incidentStatuses = [
+  'OPEN',
+  'INVESTIGATING',
+  'MITIGATING',
+  'RESOLVED',
+  'CLOSED',
+] as const;
+export type IncidentStatus = (typeof incidentStatuses)[number];
+
+/** The single source of truth for the incident lifecycle; used by the API and the UI. */
+export const incidentTransitions: Record<IncidentStatus, readonly IncidentStatus[]> = {
+  OPEN: ['INVESTIGATING'],
+  INVESTIGATING: ['MITIGATING', 'RESOLVED'],
+  MITIGATING: ['RESOLVED'],
+  RESOLVED: ['CLOSED'],
+  CLOSED: [],
+};
+
+export interface Paginated<T> {
+  items: T[];
+  page: number;
+  limit: number;
+  total: number;
+}
+
+export interface ProjectDto {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  createdAt: string;
+}
+
+export interface ServiceDto {
+  id: string;
+  projectId: string;
+  projectName: string;
+  name: string;
+  slug: string;
+  status: ServiceStatus;
+  createdAt: string;
+}
+
+export interface IncidentDto {
+  id: string;
+  serviceId: string;
+  serviceName: string;
+  title: string;
+  description: string | null;
+  severity: Severity;
+  status: IncidentStatus;
+  priority: Priority;
+  assignee: { id: string; name: string; email: string } | null;
+  createdBy: string;
+  startedAt: string;
+  resolvedAt: string | null;
+  version: number;
+  allowedNextStatuses: IncidentStatus[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface IncidentEventDto {
+  id: string;
+  eventType: string;
+  actor: { id: string; name: string };
+  metadata: Record<string, unknown>;
+  createdAt: string;
+}
+
+export interface IncidentCommentDto {
+  id: string;
+  body: string;
+  author: { id: string; name: string };
+  createdAt: string;
+}
+
+export interface IncidentDetailResponse {
+  incident: IncidentDto;
+  events: IncidentEventDto[];
+  comments: IncidentCommentDto[];
+}

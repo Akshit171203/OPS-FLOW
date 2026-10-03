@@ -6,7 +6,10 @@ import { config } from './lib/config';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { requestId } from './middleware/requestId';
 import { authRouter } from './modules/auth/routes';
+import { incidentsRouter } from './modules/incidents/routes';
 import { membersRouter } from './modules/members/routes';
+import { projectsRouter } from './modules/projects/routes';
+import { servicesRouter } from './modules/services/routes';
 
 export function buildApp() {
   const app = express();
@@ -23,6 +26,9 @@ export function buildApp() {
 
   app.use('/api/auth', authRouter);
   app.use('/api/members', membersRouter);
+  app.use('/api/projects', projectsRouter);
+  app.use('/api/services', servicesRouter);
+  app.use('/api/incidents', incidentsRouter);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

@@ -1,16 +1,12 @@
 import argon2 from 'argon2';
 import type { LoginInput, RegisterInput } from '@opsflow/shared';
 import { db } from '../../db/client';
+import { isUniqueViolation } from '../../lib/dbErrors';
 import { ConflictError, UnauthorizedError } from '../../lib/errors';
 import { authRepository as repo } from './repository';
 
 // Verified against when the email is unknown so both failure paths cost the same.
 const dummyHashPromise = argon2.hash('opsflow-dummy-password');
-
-function isUniqueViolation(err: unknown): boolean {
-  const e = err as { code?: string; cause?: { code?: string } };
-  return e?.code === '23505' || e?.cause?.code === '23505';
-}
 
 const normalizeEmail = (email: string) => email.trim().toLowerCase();
 

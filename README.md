@@ -2,7 +2,7 @@
 
 Incident management for engineering teams: incidents with a strict lifecycle, live timelines, logs and deployments, and optional AI-assisted analysis.
 
-Status: Phase 1 (foundation) complete — registration, login, organizations, roles and RBAC.
+Status: Phase 2 (core domain) complete — incidents with a strict lifecycle, timeline, audit trail and optimistic concurrency, on top of auth and RBAC.
 
 ## Structure
 
