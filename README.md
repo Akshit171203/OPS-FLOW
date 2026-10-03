@@ -2,7 +2,7 @@
 
 Incident management for engineering teams: incidents with a strict lifecycle, live timelines, logs and deployments, and optional AI-assisted analysis.
 
-Status: Phase 2 (core domain) complete — incidents with a strict lifecycle, timeline, audit trail and optimistic concurrency, on top of auth and RBAC.
+Status: Phase 3 (async backbone) complete — events are published after commit and processed by a separate worker with retries and idempotency, on top of Phase 2 (core domain) — incidents with a strict lifecycle, timeline, audit trail and optimistic concurrency, on top of auth and RBAC.
 
 ## Structure
 
@@ -18,8 +18,11 @@ pnpm install
 docker compose up -d
 pnpm db:migrate
 pnpm dev:backend   # http://localhost:4100
+pnpm dev:worker    # background worker (notifications)
 pnpm dev:frontend  # http://localhost:3140
 ```
+
+To run the API and worker as containers instead: `docker compose --profile app up --build`.
 
 ## Checks
 

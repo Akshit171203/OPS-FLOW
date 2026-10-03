@@ -23,6 +23,29 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+  # The application containers are opt-in: `docker compose --profile app up --build`
+  api:
+    profiles: ['app']
+    build: { context: ., dockerfile: backend/Dockerfile }
+    command: sh -c "pnpm --filter @opsflow/backend db:migrate && pnpm --filter @opsflow/backend start"
+    environment: &app-env
+      NODE_ENV: production
+      PORT: 4100
+      WEB_ORIGIN: http://localhost:3140
+      DATABASE_URL: postgres://opsflow:opsflow@postgres:5432/opsflow
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET:-compose-dev-secret-compose-dev-secret-123}
+    ports: ['4100:4100']
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+  worker:
+    profiles: ['app']
+    build: { context: ., dockerfile: backend/Dockerfile }
+    command: pnpm --filter @opsflow/backend start:worker
+    environment: *app-env
+    depends_on:
+      api: { condition: service_started }
 volumes:
   pgdata:
   redisdata:

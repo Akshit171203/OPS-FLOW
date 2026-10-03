@@ -15,6 +15,7 @@ import { paginated } from '../../lib/pagination';
 import { auditRepository } from '../audit/repository';
 import { membersRepository } from '../members/repository';
 import { servicesRepository } from '../services/repository';
+import { emitIncidentEvent } from './events';
 import { incidentsRepository as repo, type IncidentRow } from './repository';
 import type { ListIncidentsQuery } from './schemas';
 import { allowedTransitions, assertTransition } from './stateMachine';
@@ -142,7 +143,7 @@ export const incidentsService = {
     },
   ): Promise<IncidentDto> {
     const orgId = ctx.actor.organizationId;
-    return db.transaction(async (tx) => {
+    const incident = await db.transaction(async (tx) => {
       const service = await servicesRepository.find(tx, orgId, input.serviceId);
       if (!service) throw new NotFoundError('Service not found', 'SERVICE_NOT_FOUND');
       if (input.assigneeId) await requireAssignee(tx, ctx, input.assigneeId);
@@ -173,9 +174,11 @@ export const incidentsService = {
       });
       return toDto(await requireIncident(tx, ctx, id));
     });
+    await emitIncidentEvent(ctx, incident, 'created');
+    return incident;
   },
 
-  update(
+  async update(
     ctx: RequestContext,
     id: string,
     input: {
@@ -186,10 +189,10 @@ export const incidentsService = {
       priority?: Priority;
     },
   ): Promise<IncidentDto> {
-    return db.transaction(async (tx) => {
+    const changes: Record<string, { from: unknown; to: unknown }> = {};
+    const incident = await db.transaction(async (tx) => {
       const current = await requireIncident(tx, ctx, id);
       const { version, ...fields } = input;
-      const changes: Record<string, { from: unknown; to: unknown }> = {};
       for (const [key, to] of Object.entries(fields)) {
         const from = current[key as keyof Row];
         if (to !== undefined && to !== from) changes[key] = { from, to };
@@ -199,15 +202,19 @@ export const incidentsService = {
         metadata: { changes },
       });
     });
+    await emitIncidentEvent(ctx, incident, 'updated', { changes });
+    return incident;
   },
 
-  assign(
+  async assign(
     ctx: RequestContext,
     id: string,
     input: { version: number; assigneeId: string | null },
   ): Promise<IncidentDto> {
-    return db.transaction(async (tx) => {
+    let previous: string | null = null;
+    const incident = await db.transaction(async (tx) => {
       const current = await requireIncident(tx, ctx, id);
+      previous = current.assigneeId;
       if (input.assigneeId) await requireAssignee(tx, ctx, input.assigneeId);
       return applyChange(
         tx,
@@ -221,15 +228,19 @@ export const incidentsService = {
         },
       );
     });
+    await emitIncidentEvent(ctx, incident, 'assigned', { from: previous, to: input.assigneeId });
+    return incident;
   },
 
-  changeStatus(
+  async changeStatus(
     ctx: RequestContext,
     id: string,
     input: { version: number; status: IncidentStatus },
   ): Promise<IncidentDto> {
-    return db.transaction(async (tx) => {
+    let from: IncidentStatus = 'OPEN';
+    const incident = await db.transaction(async (tx) => {
       const current = await requireIncident(tx, ctx, id);
+      from = current.status;
       // A stale version wins over an invalid transition: the client's view is outdated anyway.
       if (current.version !== input.version) throw versionConflict(current.version);
       assertTransition(current.status, input.status);
@@ -245,16 +256,20 @@ export const incidentsService = {
         { type: 'incident.status_changed', metadata: { from: current.status, to: input.status } },
       );
     });
+    if (input.status === 'RESOLVED') await emitIncidentEvent(ctx, incident, 'resolved');
+    else await emitIncidentEvent(ctx, incident, 'status_changed', { from, to: input.status });
+    return incident;
   },
 
-  addComment(
+  async addComment(
     ctx: RequestContext,
     id: string,
     input: { body: string },
   ): Promise<IncidentCommentDto> {
     const orgId = ctx.actor.organizationId;
-    return db.transaction(async (tx) => {
-      await requireIncident(tx, ctx, id);
+    let incident!: IncidentDto;
+    const comment = await db.transaction(async (tx) => {
+      incident = toDto(await requireIncident(tx, ctx, id));
       const { id: commentId } = await repo.insertComment(tx, {
         organizationId: orgId,
         incidentId: id,
@@ -281,5 +296,7 @@ export const incidentsService = {
         createdAt: new Date().toISOString(),
       };
     });
+    await emitIncidentEvent(ctx, incident, 'comment_added', { commentId: comment.id });
+    return comment;
   },
 };

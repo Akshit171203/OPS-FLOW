@@ -7,7 +7,7 @@ import { signToken } from '../middleware/auth';
 
 export async function resetDb() {
   await db.execute(
-    sql`TRUNCATE users, organizations, organization_members RESTART IDENTITY CASCADE`,
+    sql`TRUNCATE users, organizations, organization_members, idempotency_keys RESTART IDENTITY CASCADE`,
   );
 }
 
@@ -104,4 +104,25 @@ export async function createIncident(
     .send({ serviceId, title: 'Payments failing', severity: 'SEV2', ...over });
   expect(res.status).toBe(201);
   return res.body.incident as { id: string; version: number; status: string };
+}
+
+export const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/** Polls until `fn` returns a truthy value (or throws on timeout); avoids fixed sleeps in async tests. */
+export async function waitFor<T>(
+  fn: () => Promise<T> | T,
+  timeoutMs = 8000,
+): Promise<NonNullable<T>> {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    const value = await fn();
+    if (value) return value as NonNullable<T>;
+    if (Date.now() > deadline) throw new Error('waitFor timed out');
+    await sleep(25);
+  }
+}
+
+export async function userIdOf(app: Express, cookie: string): Promise<string> {
+  const res = await request(app).get('/api/auth/me').set('cookie', cookie);
+  return res.body.user.id as string;
 }

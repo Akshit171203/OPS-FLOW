@@ -6,8 +6,10 @@ import { config } from './lib/config';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { requestId } from './middleware/requestId';
 import { authRouter } from './modules/auth/routes';
+import { adminRouter } from './modules/admin/routes';
 import { incidentsRouter } from './modules/incidents/routes';
 import { membersRouter } from './modules/members/routes';
+import { notificationsRouter } from './modules/notifications/routes';
 import { projectsRouter } from './modules/projects/routes';
 import { servicesRouter } from './modules/services/routes';
 
@@ -29,6 +31,8 @@ export function buildApp() {
   app.use('/api/projects', projectsRouter);
   app.use('/api/services', servicesRouter);
   app.use('/api/incidents', incidentsRouter);
+  app.use('/api/notifications', notificationsRouter);
+  app.use('/api/admin', adminRouter);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

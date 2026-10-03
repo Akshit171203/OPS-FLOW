@@ -170,3 +170,36 @@ export const auditLogs = pgTable(
   },
   (t) => [index('audit_logs_org_created_idx').on(t.organizationId, t.createdAt)],
 );
+
+export const idempotencyKeys = pgTable(
+  'idempotency_keys',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    key: text('key').notNull(),
+    scope: text('scope').notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [unique('idempotency_keys_key_scope_unique').on(t.key, t.scope)],
+);
+
+export const notifications = pgTable(
+  'notifications',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    organizationId: orgId(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    /** The event that produced this notification; with user_id it is a second duplicate guard. */
+    eventId: uuid('event_id').notNull(),
+    type: text('type').notNull(),
+    payload: jsonb('payload').$type<{ message: string; incidentId?: string | null }>().notNull(),
+    metadata: jsonb('metadata').$type<Record<string, unknown>>().notNull().default({}),
+    readAt: timestamp('read_at', { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    unique('notifications_event_user_unique').on(t.eventId, t.userId),
+    index('notifications_user_created_idx').on(t.userId, t.createdAt),
+  ],
+);

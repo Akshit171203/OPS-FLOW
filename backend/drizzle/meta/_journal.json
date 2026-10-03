@@ -22,6 +22,13 @@
       "when": 1791057240217,
       "tag": "0002_core_domain",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791058130232,
+      "tag": "0003_async_backbone",
+      "breakpoints": true
     }
   ]
 }

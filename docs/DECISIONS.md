@@ -74,3 +74,37 @@ Priority is LOW, MEDIUM, HIGH or URGENT. Comments are append-only in this phase 
 ### Pagination
 
 Offset pagination (`page`, `limit` up to 100) returning `{ items, page, limit, total }` for projects, services and incidents, ordered by a stable key. Cursor pagination is reserved for logs in Phase 4, where volume justifies it.
+
+## Phase 3: Async backbone
+
+### Events are published after commit; failures are logged and counted, not retried inline
+
+`publishEvent()` runs only after the database transaction has resolved, so a worker can never see an event for data that was rolled back. If the Redis publish fails (or takes more than 2 seconds) the request still succeeds, because the data is already committed; the failure is logged at error level with the event and request ids, and counted in a process-local counter that the admin jobs endpoint returns as `publishFailures`. The counter is deliberately not stored in Redis, since Redis may be what is down. The remaining gap (a crash between commit and publish loses the event) is the classic dual-write problem. The outbox pattern closes it by writing the event to a table in the same transaction and relaying it; it is a known V2 improvement and not built.
+
+### Idempotency key and work share one transaction
+
+`processOnce(key, scope, fn)` inserts the key with `ON CONFLICT DO NOTHING` and runs `fn` inside the same transaction. If `fn` throws, the key rolls back, so the retry runs again; recording the key in its own committed transaction would turn one transient failure into a permanently skipped event. Concurrent deliveries serialize on the unique index, so exactly one runs the work. `notifications(event_id, user_id)` is unique as a second, independent guard, and BullMQ `jobId = eventId` stops duplicate enqueues. Three layers because each covers a different failure: duplicate enqueue, concurrent consumers, and a retry after a partial failure.
+
+### Redis is the queue, Postgres stays the source of truth
+
+BullMQ keeps jobs in Redis, so jobs published while the worker is down wait there and are delivered when it returns (verified by killing the worker container, creating incidents, and restarting it: every notification arrived once). Notifications themselves live in Postgres.
+
+### Retry policy
+
+Three attempts, with delays of 1s and 5s between them. The configured list also holds 30s, which is never used with three attempts; it is clamped so raising the attempt count later cannot index past the end. Delays are an environment setting so tests run in milliseconds. After the last failure the job stays in BullMQ's failed set with its error and attempt count (`removeOnFail: false`). A malformed payload throws `UnrecoverableError`: it can never succeed, so it fails after one attempt instead of burning retries.
+
+### Request correlation
+
+The HTTP `x-request-id` is copied into the event, then into every job log line (`request_id`, `job_id`, `event_id`, attempt, duration) and into the notification row's metadata, so one id traces a notification back to the request that caused it.
+
+### Who is notified
+
+The person who made the change is never notified of it. Created: the assignee and all admins and owners. Assigned: the new assignee. Updated, status changed or commented: the assignee. Resolved: the assignee and the creator. Recipients are filtered to current organization members, so a stale id or another tenant's user can never receive a notification.
+
+### Failed-jobs endpoint is tenant-scoped
+
+`GET /api/admin/jobs/failed` (ADMIN+) filters failed jobs by the organization id carried in each job, so one tenant cannot see another's failures.
+
+### Two processes, one image
+
+The API and the worker are separate entry points (`server.ts`, `worker.ts`) built from one backend image with different commands. The application containers sit behind a Compose `app` profile so a plain `docker compose up` still starts only Postgres and Redis for local development. The Dockerfile is deliberately minimal; production hardening belongs to Phase 8.
