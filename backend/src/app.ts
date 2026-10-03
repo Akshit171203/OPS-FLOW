@@ -12,12 +12,14 @@ import { adminRouter } from './modules/admin/routes';
 import { dashboardRouter } from './modules/dashboard/routes';
 import { demoRouter } from './modules/demo/routes';
 import { deploymentsRouter, incidentDeploymentsRouter } from './modules/deployments/routes';
+import { aiRouter, incidentAnalysisRouter } from './modules/analysis/routes';
 import { incidentsRouter } from './modules/incidents/routes';
 import { logsRouter } from './modules/logs/routes';
 import { membersRouter } from './modules/members/routes';
 import { metricsRouter } from './modules/metrics/routes';
 import { notificationsRouter } from './modules/notifications/routes';
 import { projectsRouter } from './modules/projects/routes';
+import { runbooksRouter } from './modules/runbooks/routes';
 import { servicesRouter } from './modules/services/routes';
 
 export function buildApp() {
@@ -73,6 +75,7 @@ export function buildApp() {
   app.use('/api/projects', projectsRouter);
   app.use('/api/services', servicesRouter);
   app.use('/api/incidents', incidentDeploymentsRouter);
+  app.use('/api/incidents', incidentAnalysisRouter);
   app.use('/api/incidents', incidentsRouter);
   app.use('/api/logs', logsRouter);
   app.use('/api/deployments', deploymentsRouter);
@@ -81,6 +84,8 @@ export function buildApp() {
   app.use('/api/admin', adminRouter);
   app.use('/api/demo', demoRouter);
   app.use('/api/dashboard', dashboardRouter);
+  app.use('/api/runbooks', runbooksRouter);
+  app.use('/api/ai', aiRouter);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

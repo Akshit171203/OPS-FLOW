@@ -2,7 +2,7 @@
 
 Incident management for engineering teams: incidents with a strict lifecycle, live timelines, logs and deployments, and optional AI-assisted analysis.
 
-Status: Phase 5 (Redis hardening and security) complete — rate limiting, caching, locks, CSRF/CORS, readiness and graceful shutdown, on top of Phase 4 (realtime and operational data) — live incident pages, logs, deployments, metrics and a seeded demo, on top of Phase 3 (async backbone) — events are published after commit and processed by a separate worker with retries and idempotency, on top of Phase 2 (core domain) — incidents with a strict lifecycle, timeline, audit trail and optimistic concurrency, on top of auth and RBAC.
+Status: Phase 6 (AI incident analysis) complete — retrieval over runbooks, validated structured output, async analysis with live progress and usage tracking, on top of Phase 5 (Redis hardening and security) — rate limiting, caching, locks, CSRF/CORS, readiness and graceful shutdown, on top of Phase 4 (realtime and operational data) — live incident pages, logs, deployments, metrics and a seeded demo, on top of Phase 3 (async backbone) — events are published after commit and processed by a separate worker with retries and idempotency, on top of Phase 2 (core domain) — incidents with a strict lifecycle, timeline, audit trail and optimistic concurrency, on top of auth and RBAC.
 
 ## Structure
 
@@ -35,6 +35,15 @@ After `pnpm db:seed`, sign in as one of these (password `demo-password-1`) and u
 | ADMIN    | demo-admin@opsflow.demo    |
 | ENGINEER | demo-engineer@opsflow.demo |
 | VIEWER   | demo-viewer@opsflow.demo   |
+
+## AI analysis
+
+Open an incident and press **Analyze with AI**. It reads the incident's logs, deployments and metrics plus your runbooks, and returns likely causes with confidence, evidence and suggested steps.
+
+- By default `AI_PROVIDER=fake`: an offline analyzer that needs no key and is labelled as such in the UI.
+- For a real model set `AI_PROVIDER=gemini` and `GEMINI_API_KEY` on the server (never in the browser), then run **POST /api/runbooks/reindex-all** once so the runbooks are embedded with the same model.
+- With the key missing, the analysis shows a clear failed state and the rest of the app works normally.
+- Runbooks are managed through the API (`/api/runbooks`); five are seeded by `pnpm db:seed`.
 
 ## API notes
 

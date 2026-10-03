@@ -79,6 +79,7 @@ export interface NotificationDto {
 }
 
 export interface FailedJobDto {
+  queue: string;
   jobId: string;
   eventId: string;
   type: string;

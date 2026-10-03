@@ -23,6 +23,13 @@ const ConfigSchema = z.object({
   DB_POOL_CONNECT_TIMEOUT_MS: z.coerce.number().int().min(1).default(5_000),
   DB_STATEMENT_TIMEOUT_MS: z.coerce.number().int().min(0).default(15_000),
   SHUTDOWN_TIMEOUT_MS: z.coerce.number().int().min(1).default(10_000),
+  /** 'fake' runs fully offline (deterministic); 'gemini' calls the real API and needs GEMINI_API_KEY. */
+  AI_PROVIDER: z.enum(['fake', 'gemini']).default('fake'),
+  GEMINI_API_KEY: z.string().min(1).optional(),
+  GEMINI_MODEL: z.string().min(1).default('gemini-2.5-flash'),
+  GEMINI_EMBEDDING_MODEL: z.string().min(1).default('gemini-embedding-001'),
+  GEMINI_BASE_URL: z.string().url().default('https://generativelanguage.googleapis.com/v1beta'),
+  AI_TIMEOUT_MS: z.coerce.number().int().min(1).default(30_000),
   QUEUE_PREFIX: z.string().min(1).default('opsflow'),
   /** Comma-separated backoff delays (ms) applied after the 1st, 2nd, ... failed attempt. */
   RETRY_DELAYS_MS: z

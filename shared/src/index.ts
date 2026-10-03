@@ -188,3 +188,4 @@ export interface ServiceHealthDto {
   status: ServiceStatus;
   latestMetric: MetricDto | null;
 }
+export * from './ai';

@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, ilike, lt, lte, or, type SQL } from 'drizzle-orm';
+import { and, desc, eq, gte, ilike, inArray, lt, lte, or, type SQL } from 'drizzle-orm';
 import type { Executor } from '../../db/client';
 import { logs, services } from '../../db/schema';
 import type { LogInput, SearchLogsQuery } from './schemas';
@@ -26,6 +26,23 @@ const when = <T>(v: T | undefined, build: (v: T) => SQL): SQL | undefined =>
   v === undefined ? undefined : build(v);
 
 export const logsRepository = {
+  /** ERROR and WARN lines for one service since `since`, newest first (input to AI analysis). */
+  forAnalysis(ex: Executor, organizationId: string, serviceId: string, since: Date, limit: number) {
+    return ex
+      .select({ timestamp: logs.timestamp, level: logs.level, message: logs.message })
+      .from(logs)
+      .where(
+        and(
+          eq(logs.organizationId, organizationId),
+          eq(logs.serviceId, serviceId),
+          inArray(logs.level, ['ERROR', 'WARN']),
+          gte(logs.timestamp, since),
+        ),
+      )
+      .orderBy(desc(logs.timestamp), desc(logs.id))
+      .limit(limit);
+  },
+
   async insertMany(ex: Executor, organizationId: string, items: LogInput[]) {
     await ex.insert(logs).values(
       items.map((i) => ({

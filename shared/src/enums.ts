@@ -42,5 +42,38 @@ export const realtimeEvents = [
   'incident.status_changed',
   'incident.comment_added',
   'notification.created',
+  'ai.analysis_started',
+  'ai.analysis_progress',
+  'ai.analysis_completed',
+  'ai.analysis_failed',
 ] as const;
 export type RealtimeEventName = (typeof realtimeEvents)[number];
+
+export const analysisStatuses = ['QUEUED', 'RUNNING', 'COMPLETED', 'FAILED'] as const;
+export type AnalysisStatus = (typeof analysisStatuses)[number];
+
+export const runbookIndexStatuses = ['PENDING', 'INDEXED', 'FAILED'] as const;
+export type RunbookIndexStatus = (typeof runbookIndexStatuses)[number];
+
+/** Steps the UI shows while an analysis runs. */
+export const analysisSteps = [
+  'collecting_context',
+  'searching_runbooks',
+  'generating',
+  'repairing',
+] as const;
+export type AnalysisStep = (typeof analysisSteps)[number];
+
+/** Stable error codes stored on a failed analysis (and shown to users). */
+export const aiErrorCodes = [
+  'AI_NOT_CONFIGURED',
+  'AI_TIMEOUT',
+  'AI_RATE_LIMITED',
+  'AI_UNAVAILABLE',
+  'AI_AUTH_FAILED',
+  'AI_BAD_REQUEST',
+  'AI_EMPTY_RESPONSE',
+  'AI_INVALID_OUTPUT',
+  'AI_UNKNOWN',
+] as const;
+export type AiErrorCode = (typeof aiErrorCodes)[number];

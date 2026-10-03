@@ -77,7 +77,7 @@ describe('graceful shutdown of an HTTP server', () => {
         res.end('done');
       }, 300);
     });
-    await new Promise<void>((r) => server.listen(0, r));
+    await new Promise<void>((r) => server.listen(0, '127.0.0.1', r));
     const port = (server.address() as AddressInfo).port;
     const url = `http://127.0.0.1:${port}/`;
 

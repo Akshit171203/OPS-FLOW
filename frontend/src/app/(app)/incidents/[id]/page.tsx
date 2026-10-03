@@ -14,6 +14,7 @@ import { api, ApiError } from '@/lib/api';
 import { formatDate } from '@/lib/format';
 import { useIncidentRoom, useReconnect, useSocketEvent } from '@/lib/socket';
 import { useFetch } from '@/lib/useFetch';
+import { AiAnalysisPanel } from '@/components/AiAnalysisPanel';
 import { DeploymentsPanel, LogsPanel, MetricsLine } from '@/components/IncidentPanels';
 import { useMe } from '@/lib/me-context';
 import {
@@ -49,6 +50,14 @@ function describeEvent(e: IncidentEventDto, nameOf: (id: unknown) => string): st
       );
       return `updated ${parts.join(', ') || 'details'}`;
     }
+    case 'ai.analysis.requested':
+      return 'requested an AI analysis';
+    case 'ai.analysis.started':
+      return 'AI analysis started';
+    case 'ai.analysis.completed':
+      return 'AI analysis completed';
+    case 'ai.analysis.failed':
+      return `AI analysis failed (${String(e.metadata.code)})`;
     default:
       return e.eventType;
   }
@@ -75,6 +84,8 @@ export default function IncidentDetailPage() {
   useSocketEvent<{ incidentId: string }>('incident.updated', onLive);
   useSocketEvent<{ incidentId: string }>('incident.status_changed', onLive);
   useSocketEvent<{ incidentId: string }>('incident.comment_added', onLive);
+  useSocketEvent<{ incidentId: string }>('ai.analysis_completed', onLive); // timeline entries for AI runs
+  useSocketEvent<{ incidentId: string }>('ai.analysis_failed', onLive);
   useReconnect(refresh);
 
   if (detail.error && !detail.data) return <ErrorText>{detail.error}</ErrorText>;
@@ -189,6 +200,8 @@ export default function IncidentDetailPage() {
           <MetricsLine serviceId={incident.serviceId} refreshKey={refreshKey} />
         </div>
       </header>
+
+      <AiAnalysisPanel incidentId={id} canRun={canWrite} />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <section>

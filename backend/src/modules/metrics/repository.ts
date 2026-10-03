@@ -30,6 +30,16 @@ export const metricsRepository = {
     return row;
   },
 
+  /** Newest snapshots first, for the analysis context. */
+  recent(ex: Executor, organizationId: string, serviceId: string, limit: number) {
+    return ex
+      .select()
+      .from(metrics)
+      .where(and(eq(metrics.organizationId, organizationId), eq(metrics.serviceId, serviceId)))
+      .orderBy(desc(metrics.capturedAt), desc(metrics.id))
+      .limit(limit);
+  },
+
   async setServiceStatus(
     ex: Executor,
     organizationId: string,

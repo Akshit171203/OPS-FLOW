@@ -21,7 +21,7 @@ export async function createRealtimeTestHarness(): Promise<Harness> {
   const app = buildApp();
   const server: HttpServer = createServer(app);
   const realtime = attachRealtime(server);
-  await new Promise<void>((resolve) => server.listen(0, resolve));
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
   await realtime.ready;
   const url = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   const sockets: Socket[] = [];

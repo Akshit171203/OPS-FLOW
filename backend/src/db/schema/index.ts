@@ -8,16 +8,21 @@ import {
   pgEnum,
   pgTable,
   text,
+  numeric,
   timestamp,
   unique,
+  uniqueIndex,
   uuid,
+  vector,
 } from 'drizzle-orm/pg-core';
 import {
+  analysisStatuses,
   deploymentStatuses,
   incidentStatuses,
   logLevels,
   priorities,
   roles,
+  runbookIndexStatuses,
   serviceStatuses,
   severities,
 } from '@opsflow/shared';
@@ -293,4 +298,87 @@ export const incidentDeployments = pgTable(
     createdAt: createdAt(),
   },
   (t) => [unique('incident_deployments_unique').on(t.incidentId, t.deploymentId)],
+);
+
+/** Must match the output size of every embedding provider (Gemini is asked for 768 dimensions). */
+export const EMBEDDING_DIMENSIONS = 768;
+
+export const runbookIndexStatusEnum = pgEnum('runbook_index_status', runbookIndexStatuses);
+export const analysisStatusEnum = pgEnum('analysis_status', analysisStatuses);
+
+export const runbooks = pgTable(
+  'runbooks',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    organizationId: orgId(),
+    title: text('title').notNull(),
+    content: text('content').notNull(),
+    /** Optional service slug this runbook is about, e.g. "payment-service". */
+    serviceTag: text('service_tag'),
+    indexStatus: runbookIndexStatusEnum('index_status').notNull().default('PENDING'),
+    indexError: text('index_error'),
+    indexedAt: timestamp('indexed_at', { withTimezone: true }),
+    createdBy: uuid('created_by')
+      .notNull()
+      .references(() => users.id),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index('runbooks_org_idx').on(t.organizationId)],
+);
+
+export const runbookChunks = pgTable(
+  'runbook_chunks',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    organizationId: orgId(),
+    runbookId: uuid('runbook_id')
+      .notNull()
+      .references(() => runbooks.id, { onDelete: 'cascade' }),
+    chunkIndex: integer('chunk_index').notNull(),
+    content: text('content').notNull(),
+    /** Which model produced `embedding`; vectors from different models are not comparable. */
+    embeddingModel: text('embedding_model').notNull(),
+    embedding: vector('embedding', { dimensions: EMBEDDING_DIMENSIONS }).notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    unique('runbook_chunks_runbook_index_unique').on(t.runbookId, t.chunkIndex),
+    index('runbook_chunks_org_idx').on(t.organizationId),
+    index('runbook_chunks_embedding_hnsw').using('hnsw', t.embedding.op('vector_cosine_ops')),
+  ],
+);
+
+export const aiAnalyses = pgTable(
+  'ai_analyses',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    organizationId: orgId(),
+    incidentId: uuid('incident_id')
+      .notNull()
+      .references(() => incidents.id, { onDelete: 'cascade' }),
+    status: analysisStatusEnum('status').notNull().default('QUEUED'),
+    model: text('model'),
+    promptVersion: text('prompt_version').notNull(),
+    result: jsonb('result').$type<Record<string, unknown>>(),
+    errorCode: text('error_code'),
+    errorMessage: text('error_message'),
+    inputTokens: integer('input_tokens'),
+    outputTokens: integer('output_tokens'),
+    latencyMs: integer('latency_ms'),
+    estimatedCost: numeric('estimated_cost', { precision: 12, scale: 6 }),
+    startedAt: timestamp('started_at', { withTimezone: true }),
+    completedAt: timestamp('completed_at', { withTimezone: true }),
+    createdBy: uuid('created_by')
+      .notNull()
+      .references(() => users.id),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    index('ai_analyses_incident_created_idx').on(t.incidentId, t.createdAt),
+    // At most one analysis can be queued or running per incident, enforced by the database itself
+    uniqueIndex('ai_analyses_one_active_per_incident')
+      .on(t.incidentId)
+      .where(sql`${t.status} IN ('QUEUED', 'RUNNING')`),
+  ],
 );

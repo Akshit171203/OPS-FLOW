@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, gte, lte, sql, type SQL } from 'drizzle-orm';
+import { and, asc, count, desc, eq, gte, inArray, lte, ne, sql, type SQL } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import type { Priority, Severity } from '@opsflow/shared';
 import type { Executor } from '../../db/client';
@@ -42,6 +42,35 @@ function base(ex: Executor) {
 }
 
 export const incidentsRepository = {
+  /** Past resolved incidents of a service, for "similar incidents" in AI analysis. */
+  listResolvedForService(
+    ex: Executor,
+    organizationId: string,
+    serviceId: string,
+    excludeId: string,
+    limit: number,
+  ) {
+    return ex
+      .select({
+        title: incidents.title,
+        severity: incidents.severity,
+        status: incidents.status,
+        startedAt: incidents.startedAt,
+        resolvedAt: incidents.resolvedAt,
+      })
+      .from(incidents)
+      .where(
+        and(
+          eq(incidents.organizationId, organizationId),
+          eq(incidents.serviceId, serviceId),
+          ne(incidents.id, excludeId),
+          inArray(incidents.status, ['RESOLVED', 'CLOSED']),
+        ),
+      )
+      .orderBy(desc(incidents.startedAt))
+      .limit(limit);
+  },
+
   async find(ex: Executor, organizationId: string, id: string) {
     const [row] = await base(ex).where(
       and(eq(incidents.organizationId, organizationId), eq(incidents.id, id)),

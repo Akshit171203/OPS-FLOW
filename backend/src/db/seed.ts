@@ -2,6 +2,9 @@ import argon2 from 'argon2';
 import { eq, like } from 'drizzle-orm';
 import type { Role } from '@opsflow/shared';
 import { isProduction } from '../lib/config';
+import { getAIProvider } from '../modules/ai';
+import { indexRunbook, markIndexFailed } from '../modules/runbooks/indexer';
+import { SEED_RUNBOOKS } from './seedRunbooks';
 import { db, pool } from './client';
 import {
   deployments,
@@ -10,6 +13,7 @@ import {
   organizationMembers,
   organizations,
   projects,
+  runbooks,
   services,
   users,
 } from './schema';
@@ -60,7 +64,7 @@ export async function seed() {
   const passwordHash = await argon2.hash(DEMO_PASSWORD);
   const now = Date.now();
 
-  return db.transaction(async (tx) => {
+  const summary = await db.transaction(async (tx) => {
     const [org] = await tx.insert(organizations).values({ name: DEMO_ORG_NAME }).returning();
     const insertedUsers = await tx
       .insert(users)
@@ -151,14 +155,41 @@ export async function seed() {
     });
     await tx.insert(logs).values(baseline);
 
+    const owner = insertedUsers.find((u) => u.email === 'demo-owner@opsflow.demo')!;
+    const insertedRunbooks = await tx
+      .insert(runbooks)
+      .values(
+        SEED_RUNBOOKS.map((r) => ({
+          organizationId: org!.id,
+          createdBy: owner.id,
+          updatedAt: new Date(),
+          ...r,
+        })),
+      )
+      .returning({ id: runbooks.id });
+
     return {
       organizationId: org!.id,
+      runbookIds: insertedRunbooks.map((r) => r.id),
+      runbooks: insertedRunbooks.length,
       services: insertedServices.length,
       metrics: metricRows.length,
       deployments: deployRows.length,
       logs: baseline.length,
     };
   });
+
+  // Index the runbooks now, so retrieval works immediately after seeding. A provider problem
+  // (for example no API key) leaves them FAILED with the reason instead of failing the seed.
+  const provider = getAIProvider();
+  for (const id of summary.runbookIds) {
+    try {
+      await indexRunbook(summary.organizationId, id, provider);
+    } catch (err) {
+      await markIndexFailed(id, err);
+    }
+  }
+  return summary;
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

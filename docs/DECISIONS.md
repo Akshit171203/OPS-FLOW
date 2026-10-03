@@ -208,3 +208,53 @@ On SIGTERM the API flips `/ready` to 503, stops accepting connections, lets in-f
 ### Database pool
 
 `max` 10, idle clients recycled after 30 s, 5 s to acquire a connection (fail fast instead of queueing forever), and a 15 s server-side `statement_timeout` so a runaway query cannot hold a connection. The API and the worker each have a pool, so Postgres sees up to twice `DB_POOL_MAX`; that stays well below Postgres' default of 100 connections for a few instances. An error event on an idle client is logged instead of crashing the process. All values are environment settings.
+
+## Phase 6: AI incident analysis
+
+### AI is optional and asynchronous
+
+Nothing in the incident workflow depends on the model. "Analyze" returns `202` immediately and a worker does the slow, failure-prone part; the page works the same with the provider down, slow, or never configured. The provider is only constructed by the AI worker and the runbook indexer, so with no key the API process never touches it. Verified by running with `AI_PROVIDER=gemini` and no key: the analysis fails with a clear `AI_NOT_CONFIGURED` message, with no retries, while every other endpoint, creating incidents and changing status keep working.
+
+### One provider interface, no vendor SDK
+
+`AIProvider` has two methods, `analyzeIncident` and `generateEmbedding`, plus the model names (stored with every result and every embedding). The real implementation talks to Google Gemini's REST API with `fetch`: no SDK dependency, a timeout on every call, the key sent in a header from server environment only, and never in a URL, a log, an error message, or a response. Swapping vendors means replacing one file. It is tested against a local stub server (request shape, headers, status mapping, timeouts, empty and blocked replies, wrong-sized embeddings), but it has not been run against the live API in this repository's tests because that needs a key.
+
+### A fake provider that is honest about being fake
+
+`FakeProvider` is the default (`AI_PROVIDER=fake`) so tests are deterministic and the whole flow works offline. Its embedding is feature hashing over words, which matches words, not meaning; its analysis is a heuristic over the evidence it is given. The UI labels its output "offline demo analyzer, not a real AI model" so nobody mistakes a pattern matcher for a model.
+
+### Retrieval: pgvector, HNSW, cosine, model-aware
+
+Runbooks are chunked by heading (merging tiny sections, windows of at most 800 characters with an 80 character overlap, every chunk prefixed with `Title › Heading` so it stands alone) and embedded as 768-dimension vectors. An HNSW index with cosine distance serves nearest-neighbour search, always filtered by organization. Each chunk records which model embedded it and searches only compare vectors from the current model: embeddings from different models live in different spaces, and comparing them returns plausible-looking garbage, so changing provider needs `POST /api/runbooks/reindex-all` and until then retrieval returns nothing instead of nonsense. Known limit: with a filter, pgvector applies it after the index scan, which can return fewer than K rows for a tenant with few chunks among many; at this scale the planner scans exactly, and pgvector 0.8's iterative scan is the fix if it grows.
+
+### Indexing is a job, and edits during indexing cannot be lost
+
+Saving a runbook queues indexing after the commit, with one job per version of the text. The indexer embeds first (slow network calls, no database connection held), then replaces the chunks in one transaction guarded by "the runbook has not changed since I read it". An edit made mid-index makes the old job refuse to write (tested), leaving the runbook `PENDING` for the newer job. Re-indexing always replaces rather than appends, so it is idempotent.
+
+### The context is bounded, redacted and single-tenant
+
+One pure function turns database rows into the only data the model sees. Hard caps: 50 error logs of at most 300 characters, 5 error patterns, 10 deployments, 6 metric snapshots, 3 similar incidents, 3 runbook excerpts, and a 24,000 character ceiling on the whole object, shed least valuable first (older logs, then long excerpts, similar incidents, history) and recorded in a `truncation` note so the model knows the picture is partial. Error patterns are counted over every fetched line, not just the shown ones, so "16 occurrences" is real volume. Every query is scoped by organization. Emails, tokens, API keys, JWTs, passwords and database URLs are redacted from every free-text field before anything is cut to length, so a secret cannot survive by being split at the cut. The context carries no assignee, creator, email or organization id. Redaction is bounded so a pathological log line cannot make it slow; a test found and fixed a quadratic email pattern.
+
+### Prompt design and prompt injection
+
+The prompt is versioned in code (`incident-analysis-v1`, stored on every result). Rules: use only the evidence, state uncertainty, cite what supports each cause, never recommend a destructive action without human approval. Logs and titles are attacker-influenced text, so they sit inside an `<incident_data>` block and the instructions say text in it is data, never instructions. This reduces, but cannot eliminate, prompt injection; the stronger defences are structural: the model cannot call tools or change anything, its output is validated against a schema, and nothing it says is executed.
+
+### Output is never trusted
+
+The reply is parsed (markdown fences and surrounding prose stripped) and validated with Zod: confidence between 0 and 1, at least one piece of evidence per cause, bounded list sizes, unknown fields dropped. If invalid, the model gets exactly one repair attempt that includes what was wrong; if that also fails the analysis is `FAILED` with `AI_INVALID_OUTPUT`. Tokens from both calls are summed, so a failed repair is still counted in the spend.
+
+### Failure handling: stable codes, retry only what can succeed
+
+Provider errors map to distinct codes stored on the analysis: timeout, rate limit (429), unavailable (5xx), auth, bad request, empty response, invalid output, not configured. Transient ones (timeout, 429, 5xx, and unexpected errors such as a database blip) go through the queue's retry policy; permanent ones (bad key, bad request, empty reply, invalid output) fail at once instead of burning retries. An intermediate failure leaves the analysis `RUNNING`, not `FAILED`, while attempts remain. Unexpected errors surface a generic message and log the detail, so internals never reach the user.
+
+### Exactly one active analysis, and exactly one result
+
+Three layers: the per-incident lock serializes the check and the insert, so simultaneous requests share one analysis; a partial unique index (`status IN ('QUEUED','RUNNING')`) makes a second active analysis impossible even if the lock were bypassed; and finishing goes through `processOnce`, so a job delivered twice (or retried) records one result and one timeline entry (tested with two jobs running concurrently). An analysis stuck active for ten minutes (worker died, job lost) is expired as `FAILED` instead of blocking the incident forever, and if queuing the job fails the row is failed on the spot rather than left `QUEUED`.
+
+### Cost and usage
+
+Tokens, latency and an estimated cost are stored on every analysis, including failed ones. The price table is a small constant in code, labelled as an estimate; unknown models and the fake cost nothing. `GET /api/ai/usage` (ADMIN and above, per organization, `?days=`) aggregates it in SQL. The 10 per minute per user limit from Phase 5 is now wired to the endpoint.
+
+### Live progress
+
+The worker publishes `started`, `progress` (collecting context, searching runbooks, generating, repairing), `completed` and `failed` to the organization and incident rooms over the existing Redis channel. The page also refetches after a reconnect, so a missed event costs nothing.
