@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { contextFrom } from '../../lib/context';
 import { parse } from '../../lib/validate';
 import { requireAuth, requireRole } from '../../middleware/auth';
+import { z } from 'zod';
 import { metricsService } from '../metrics/service';
 import { IdParamsSchema } from '../projects/schemas';
 import { CreateServiceSchema, ListServicesQuerySchema, UpdateServiceSchema } from './schemas';
@@ -39,4 +40,25 @@ servicesRouter.get('/health', requireAuth, async (req, res) => {
 servicesRouter.get('/:id/metrics/latest', requireAuth, async (req, res) => {
   const { id } = parse(IdParamsSchema, req.params);
   res.json({ metric: await metricsService.latest(contextFrom(req), id) });
+});
+
+servicesRouter.get('/:id', requireAuth, async (req, res) => {
+  const { id } = parse(IdParamsSchema, req.params);
+  res.json({ service: await servicesService.get(contextFrom(req), id) });
+});
+
+servicesRouter.get('/:id/metrics', requireAuth, async (req, res) => {
+  const { id } = parse(IdParamsSchema, req.params);
+  const { hours } = parse(
+    z.object({
+      hours: z.coerce
+        .number()
+        .int()
+        .min(1)
+        .max(24 * 14)
+        .default(24),
+    }),
+    req.query,
+  );
+  res.json(await metricsService.series(contextFrom(req), id, hours));
 });

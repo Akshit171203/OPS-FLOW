@@ -1,4 +1,4 @@
-import type { MetricDto, ServiceHealthDto, ServiceStatus } from '@opsflow/shared';
+import type { MetricDto, MetricSeriesDto, ServiceHealthDto, ServiceStatus } from '@opsflow/shared';
 import { db } from '../../db/client';
 import type { metrics } from '../../db/schema';
 import type { RequestContext } from '../../lib/context';
@@ -75,6 +75,22 @@ export const metricsService = {
           : null,
       })),
     );
+  },
+
+  /** Time series for a chart: the last `hours` of snapshots, oldest first (at most 500 points). */
+  async series(ctx: RequestContext, serviceId: string, hours: number): Promise<MetricSeriesDto> {
+    const orgId = ctx.actor.organizationId;
+    if (!(await servicesRepository.find(db, orgId, serviceId))) {
+      throw new NotFoundError('Service not found', 'SERVICE_NOT_FOUND');
+    }
+    const rows = await repo.series(
+      db,
+      orgId,
+      serviceId,
+      new Date(Date.now() - hours * 3_600_000),
+      500,
+    );
+    return { serviceId, hours, points: rows.map(toDto) };
   },
 
   async latest(ctx: RequestContext, serviceId: string): Promise<MetricDto | null> {

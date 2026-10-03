@@ -258,3 +258,41 @@ Tokens, latency and an estimated cost are stored on every analysis, including fa
 ### Live progress
 
 The worker publishes `started`, `progress` (collecting context, searching runbooks, generating, repairing), `completed` and `failed` to the organization and incident rooms over the existing Redis channel. The page also refetches after a reconnect, so a missed event costs nothing.
+
+## Phase 7: Frontend polish
+
+### Design tokens in one place, and a check that guards them
+
+Colour lives in a single `@theme` block (`globals.css`): one neutral palette, one accent, and named pairs for the three things users scan by colour: severity SEV1 to SEV4, incident status, and service health. Components use names (`bg-sev1-bg text-sev1-fg`) never raw hex values, so changing a colour is a one-line edit. `pnpm --filter @opsflow/frontend check:contrast` computes the contrast ratio of every foreground and background pair from that file and fails below WCAG AA (4.5:1); all 28 pairs pass today (lowest 4.55:1). A text colour that is nice but unreadable is caught by a command, not by someone squinting.
+
+### Colour is never the only signal
+
+Every badge carries its text ("DEGRADED", "SEV1", "Indexed"), so the information survives colour blindness, a monochrome screen, or a screen reader. Charts are a labelled image with the low, high and latest values stated in text.
+
+### Light theme only
+
+Dark mode is not "free" with a utility-class design: it needs a paired variant on every colour class or a second token set plus a check that it passes contrast too. It was left out rather than half done; the tokens are in place so it can be added by redefining them.
+
+### Every state is designed, not just the happy path
+
+Each data-driven view has four states: a skeleton shaped like the content (with an announced "Loading" region), an empty state that says what to do next, an error state with a retry, and the content. Every mutation reports its result in a toast (success, or the server's own error message), announced through a live region; errors stay longer than successes and can be dismissed. A 404 page and an error boundary cover the rest.
+
+### Accessibility fundamentals
+
+Landmarks (`header`, `nav`, `main`, `aside`), a skip link, labels tied to inputs, `aria-current` on the active navigation item, `aria-busy` and live regions for loading and progress, table headers with scope, a visible 2px focus outline that is never removed, and reduced-motion support (animations are off when the system asks). Menus and the mobile drawer close on Escape, and the drawer returns focus to the button that opened it. This was checked by tabbing through a built app, not only by reading code.
+
+### Mobile-first layout, with one recurring trap
+
+A fixed sidebar on wide screens becomes a slide-over drawer below 1024px; stat cards, lists and the incident page collapse to one column. Testing a 375px viewport found a real bug a desktop view hides: a CSS grid item defaults to `min-width: auto`, so one wide child (the logs table) stretched the whole page to 530px. Grid children that can hold wide content now carry `min-w-0`, and tables scroll inside their own container.
+
+### One chart, hand drawn
+
+The service page shows error rate and latency over 24 hours as a small SVG sparkline: about 60 lines, no dependency. It exists because one picture answers "when did it go wrong" faster than a table, and it makes the demo outage obvious. A charting library would be many times the size for the same result.
+
+### The sticky incident header
+
+On wide screens the incident header (severity, status, assignee, status actions) stays in view while the page scrolls through analysis, logs and deployments; on a phone it scrolls away normally because a sticky block would take much of a small screen.
+
+### Small API additions, each for a specific screen
+
+`recentActivity` on the dashboard (the newest timeline entries across incidents, cached and invalidated with the rest of the dashboard), `GET /api/services/:id`, and `GET /api/services/:id/metrics?hours=` for the chart (oldest first, capped at 500 points). No new tables.

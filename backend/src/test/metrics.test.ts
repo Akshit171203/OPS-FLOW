@@ -78,3 +78,34 @@ describe('metrics', () => {
     expect((await latest(o.owner, other.serviceId)).status).toBe(404);
   });
 });
+
+describe('metrics history', () => {
+  const series = (cookie: string, qs = '', id = o.serviceId) =>
+    request(app).get(`/api/services/${id}/metrics${qs}`).set('cookie', cookie);
+  const hoursAgo = (h: number) => new Date(Date.now() - h * 3_600_000).toISOString();
+
+  it('returns the last N hours oldest first, for any member', async () => {
+    await ingest(o.engineer, { errorRate: 0.02, capturedAt: hoursAgo(30) }); // outside the default 24h window
+    await ingest(o.engineer, { errorRate: 0.03, capturedAt: hoursAgo(5) });
+    await ingest(o.engineer, { errorRate: 0.4, capturedAt: hoursAgo(1) });
+    await ingest(o.engineer, { errorRate: 0.01, capturedAt: hoursAgo(10) });
+
+    const res = await series(o.viewer);
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ serviceId: o.serviceId, hours: 24 });
+    expect(res.body.points.map((p: { errorRate: number }) => p.errorRate)).toEqual([
+      0.01, 0.03, 0.4,
+    ]);
+    expect((await series(o.viewer, '?hours=48')).body.points).toHaveLength(4);
+    expect((await series(o.viewer, '?hours=2')).body.points).toHaveLength(1);
+  });
+
+  it('validates the window, scopes by organization, and is empty rather than an error with no data', async () => {
+    expect((await series(o.viewer)).body.points).toEqual([]);
+    expect((await series(o.viewer, '?hours=0')).status).toBe(400);
+    expect((await series(o.viewer, '?hours=99999')).status).toBe(400);
+    const other = await setupOrg(app, 'b');
+    expect((await series(o.owner, '', other.serviceId)).status).toBe(404);
+    expect((await request(app).get(`/api/services/${o.serviceId}/metrics`)).status).toBe(401);
+  });
+});

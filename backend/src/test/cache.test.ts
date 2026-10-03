@@ -106,6 +106,39 @@ describe('GET /api/dashboard', () => {
     void a;
   });
 
+  it('lists recent activity across incidents, newest first, with who did it', async () => {
+    const a = await createIncident(app, o.engineer, o.serviceId, { title: 'First incident' });
+    const b = await createIncident(app, o.admin, o.serviceId, { title: 'Second incident' });
+    await patchStatus(a.id, 1, 'INVESTIGATING');
+    const res = await dashboard();
+    const activity = res.body.recentActivity as {
+      eventType: string;
+      incidentTitle: string;
+      actorName: string;
+      incidentId: string;
+    }[];
+    expect(activity.map((x) => x.eventType)).toEqual([
+      'incident.status_changed',
+      'incident.created',
+      'incident.created',
+    ]);
+    expect(activity[0]).toMatchObject({ incidentTitle: 'First incident', incidentId: a.id });
+    expect(activity[1]).toMatchObject({ incidentTitle: 'Second incident', incidentId: b.id });
+    expect(activity.every((x) => typeof x.actorName === 'string' && x.actorName.length > 0)).toBe(
+      true,
+    );
+  });
+
+  it('caps recent activity at 8 entries and never shows another organization', async () => {
+    const other = await setupOrg(app, 'b');
+    await createIncident(app, other.engineer, other.serviceId, { title: 'Secret of org B' });
+    for (let i = 0; i < 10; i++)
+      await createIncident(app, o.engineer, o.serviceId, { title: `Mine ${i}` });
+    const activity = (await dashboard()).body.recentActivity as { incidentTitle: string }[];
+    expect(activity).toHaveLength(8);
+    expect(activity.some((x) => x.incidentTitle.includes('Secret'))).toBe(false);
+  });
+
   it('has null resolution time and zero counts for an empty organization', async () => {
     const res = await dashboard();
     expect(res.body).toMatchObject({

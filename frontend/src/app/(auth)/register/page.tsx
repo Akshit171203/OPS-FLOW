@@ -1,9 +1,12 @@
 import { AuthForm } from '@/components-form';
 
+export const metadata = { title: 'Create your organization · OpsFlow' };
+
 export default function RegisterPage() {
   return (
     <AuthForm
       title="Create your organization"
+      subtitle="You will be its owner and can invite your team afterwards."
       endpoint="/api/auth/register"
       submitLabel="Create account"
       alt={{ href: '/login', text: 'Already registered? Sign in' }}
@@ -13,9 +16,10 @@ export default function RegisterPage() {
         { name: 'email', label: 'Email', type: 'email', autoComplete: 'email' },
         {
           name: 'password',
-          label: 'Password (min 8 characters)',
+          label: 'Password',
           type: 'password',
           autoComplete: 'new-password',
+          hint: 'At least 8 characters.',
         },
       ]}
     />

@@ -46,7 +46,9 @@ export const runbooksRepository = {
     const rows = await ex
       .select({
         runbook: runbooks,
-        chunkCount: sql<number>`(SELECT count(*)::int FROM ${runbookChunks} WHERE ${runbookChunks.runbookId} = ${runbooks.id})`,
+        // Written with explicit table names: in a single-table select drizzle drops column prefixes,
+        // which would make `runbook_id = id` compare the chunk's own id inside this subquery.
+        chunkCount: sql<number>`(SELECT count(*)::int FROM runbook_chunks rc WHERE rc.runbook_id = "runbooks"."id")`,
       })
       .from(runbooks)
       .where(where)

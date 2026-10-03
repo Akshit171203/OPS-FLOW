@@ -14,6 +14,12 @@ type Row = NonNullable<Awaited<ReturnType<typeof repo.find>>>;
 const toDto = (r: Row): ServiceDto => ({ ...r, createdAt: r.createdAt.toISOString() });
 
 export const servicesService = {
+  async get(ctx: RequestContext, id: string): Promise<ServiceDto> {
+    const row = await repo.find(db, ctx.actor.organizationId, id);
+    if (!row) throw new NotFoundError('Service not found', 'SERVICE_NOT_FOUND');
+    return toDto(row);
+  },
+
   async list(
     ctx: RequestContext,
     p: Pagination,

@@ -1,6 +1,6 @@
 import { and, desc, eq, inArray, isNotNull, notInArray, sql } from 'drizzle-orm';
 import type { Executor } from '../../db/client';
-import { deployments, incidents, services } from '../../db/schema';
+import { deployments, incidentEvents, incidents, services, users } from '../../db/schema';
 
 export const dashboardRepository = {
   async countOpen(ex: Executor, organizationId: string, onlyCritical: boolean): Promise<number> {
@@ -47,6 +47,25 @@ export const dashboardRepository = {
       .innerJoin(services, eq(services.id, deployments.serviceId))
       .where(eq(deployments.organizationId, organizationId))
       .orderBy(desc(deployments.deployedAt), desc(deployments.id))
+      .limit(limit);
+  },
+
+  /** The newest timeline entries across all incidents of the organization. */
+  recentActivity(ex: Executor, organizationId: string, limit: number) {
+    return ex
+      .select({
+        id: incidentEvents.id,
+        eventType: incidentEvents.eventType,
+        incidentId: incidentEvents.incidentId,
+        incidentTitle: incidents.title,
+        actorName: users.name,
+        createdAt: incidentEvents.createdAt,
+      })
+      .from(incidentEvents)
+      .innerJoin(incidents, eq(incidents.id, incidentEvents.incidentId))
+      .innerJoin(users, eq(users.id, incidentEvents.actorId))
+      .where(eq(incidentEvents.organizationId, organizationId))
+      .orderBy(desc(incidentEvents.createdAt), desc(incidentEvents.id))
       .limit(limit);
   },
 

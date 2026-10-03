@@ -1,4 +1,4 @@
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, sql } from 'drizzle-orm';
 import type { ServiceStatus } from '@opsflow/shared';
 import type { Executor } from '../../db/client';
 import { metrics, services } from '../../db/schema';
@@ -28,6 +28,22 @@ export const metricsRepository = {
       .orderBy(desc(metrics.capturedAt), desc(metrics.id))
       .limit(1);
     return row;
+  },
+
+  /** Snapshots since `since`, oldest first, for charts. Capped so a long window stays cheap. */
+  series(ex: Executor, organizationId: string, serviceId: string, since: Date, limit: number) {
+    return ex
+      .select()
+      .from(metrics)
+      .where(
+        and(
+          eq(metrics.organizationId, organizationId),
+          eq(metrics.serviceId, serviceId),
+          gte(metrics.capturedAt, since),
+        ),
+      )
+      .orderBy(asc(metrics.capturedAt), asc(metrics.id))
+      .limit(limit);
   },
 
   /** Newest snapshots first, for the analysis context. */

@@ -86,6 +86,26 @@ describe('runbook API', () => {
   });
 });
 
+describe('runbook list', () => {
+  it('reports the real number of indexed sections for each runbook, not zero', async () => {
+    const a = await indexedRunbook(app, o, 'Payment', PAYMENT_RUNBOOK);
+    const b = await indexedRunbook(app, o, 'Auth', AUTH_RUNBOOK);
+    const pending = (
+      await as(o.admin).post('/api/runbooks', { title: 'Not indexed yet', content: AUTH_RUNBOOK })
+    ).body.runbook.id;
+    const list = (await as(o.viewer).get('/api/runbooks')).body.items as {
+      id: string;
+      chunkCount: number;
+      indexStatus: string;
+    }[];
+    const byId = Object.fromEntries(list.map((r) => [r.id, r]));
+    expect(byId[a]!.chunkCount).toBe(await countChunks(a));
+    expect(byId[a]!.chunkCount).toBeGreaterThan(0);
+    expect(byId[b]!.chunkCount).toBe(await countChunks(b));
+    expect(byId[pending]).toMatchObject({ chunkCount: 0, indexStatus: 'PENDING' });
+  });
+});
+
 describe('indexing worker', () => {
   it('chunks, embeds and stores a new runbook, ending INDEXED with a chunk count', async () => {
     workers.push(createRunbookWorker({ provider: new FakeProvider() }));

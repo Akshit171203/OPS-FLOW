@@ -2,7 +2,7 @@
 
 Incident management for engineering teams: incidents with a strict lifecycle, live timelines, logs and deployments, and optional AI-assisted analysis.
 
-Status: Phase 6 (AI incident analysis) complete — retrieval over runbooks, validated structured output, async analysis with live progress and usage tracking, on top of Phase 5 (Redis hardening and security) — rate limiting, caching, locks, CSRF/CORS, readiness and graceful shutdown, on top of Phase 4 (realtime and operational data) — live incident pages, logs, deployments, metrics and a seeded demo, on top of Phase 3 (async backbone) — events are published after commit and processed by a separate worker with retries and idempotency, on top of Phase 2 (core domain) — incidents with a strict lifecycle, timeline, audit trail and optimistic concurrency, on top of auth and RBAC.
+Status: Phase 7 (frontend polish) complete — dashboard, app shell, services and runbooks pages, designed loading/empty/error states, accessible and mobile friendly, on top of Phase 6 (AI incident analysis) — retrieval over runbooks, validated structured output, async analysis with live progress and usage tracking, on top of Phase 5 (Redis hardening and security) — rate limiting, caching, locks, CSRF/CORS, readiness and graceful shutdown, on top of Phase 4 (realtime and operational data) — live incident pages, logs, deployments, metrics and a seeded demo, on top of Phase 3 (async backbone) — events are published after commit and processed by a separate worker with retries and idempotency, on top of Phase 2 (core domain) — incidents with a strict lifecycle, timeline, audit trail and optimistic concurrency, on top of auth and RBAC.
 
 ## Structure
 
@@ -56,6 +56,7 @@ Open an incident and press **Analyze with AI**. It reads the incident's logs, de
 
 ```bash
 pnpm typecheck && pnpm lint && pnpm test
+pnpm --filter @opsflow/frontend check:contrast   # design-token colour pairs meet WCAG AA
 ```
 
 Tests run against the real Postgres from Docker Compose (database `opsflow_test`, created automatically).

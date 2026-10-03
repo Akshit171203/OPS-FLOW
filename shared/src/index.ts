@@ -178,7 +178,23 @@ export interface DashboardDto {
   recentDeployments: DeploymentDto[];
   /** Mean time from start to resolution over resolved incidents, or null when there are none. */
   avgResolutionMinutes: number | null;
+  recentActivity: ActivityItemDto[];
   generatedAt: string;
+}
+
+export interface ActivityItemDto {
+  id: string;
+  eventType: string;
+  incidentId: string;
+  incidentTitle: string;
+  actorName: string;
+  createdAt: string;
+}
+
+export interface MetricSeriesDto {
+  serviceId: string;
+  hours: number;
+  points: MetricDto[];
 }
 
 export interface ServiceHealthDto {

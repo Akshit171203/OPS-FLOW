@@ -10,22 +10,32 @@ import {
   type IncidentStatus,
   type MemberDto,
 } from '@opsflow/shared';
-import { api, ApiError } from '@/lib/api';
-import { formatDate } from '@/lib/format';
-import { useIncidentRoom, useReconnect, useSocketEvent } from '@/lib/socket';
-import { useFetch } from '@/lib/useFetch';
 import { AiAnalysisPanel } from '@/components/AiAnalysisPanel';
-import { DeploymentsPanel, LogsPanel, MetricsLine } from '@/components/IncidentPanels';
-import { useMe } from '@/lib/me-context';
 import {
-  buttonClass,
-  ErrorText,
+  Card,
+  ErrorState,
+  LoadingRegion,
+  SectionHeading,
+  Skeleton,
+  SkeletonLines,
+} from '@/components/feedback';
+import { DeploymentsPanel, LogsPanel, MetricsLine } from '@/components/IncidentPanels';
+import { useToast } from '@/components/toast';
+import {
+  Button,
   inputClass,
+  linkClass,
   PriorityBadge,
   secondaryButtonClass,
   SeverityBadge,
   StatusBadge,
 } from '@/components/ui';
+import { api } from '@/lib/api';
+import { formatDate, timeAgo } from '@/lib/format';
+import { useMe } from '@/lib/me-context';
+import { useIncidentRoom, useReconnect, useSocketEvent } from '@/lib/socket';
+import { useFetch } from '@/lib/useFetch';
+import { usePageTitle } from '@/lib/usePageTitle';
 
 function describeEvent(e: IncidentEventDto, nameOf: (id: unknown) => string): string {
   const m = e.metadata as Record<string, unknown> & {
@@ -35,7 +45,7 @@ function describeEvent(e: IncidentEventDto, nameOf: (id: unknown) => string): st
   };
   switch (e.eventType) {
     case 'incident.created':
-      return 'created the incident';
+      return 'opened the incident';
     case 'incident.status_changed':
       return `moved status ${String(m.from)} → ${String(m.to)}`;
     case 'incident.assigned':
@@ -44,12 +54,6 @@ function describeEvent(e: IncidentEventDto, nameOf: (id: unknown) => string): st
       return 'added a comment';
     case 'incident.deployment_linked':
       return `linked deployment ${String(e.metadata.version)} to this incident`;
-    case 'incident.updated': {
-      const parts = Object.entries(m.changes ?? {}).map(
-        ([field, c]) => `${field} ${String(c.from ?? '—')} → ${String(c.to ?? '—')}`,
-      );
-      return `updated ${parts.join(', ') || 'details'}`;
-    }
     case 'ai.analysis.requested':
       return 'requested an AI analysis';
     case 'ai.analysis.started':
@@ -58,21 +62,47 @@ function describeEvent(e: IncidentEventDto, nameOf: (id: unknown) => string): st
       return 'AI analysis completed';
     case 'ai.analysis.failed':
       return `AI analysis failed (${String(e.metadata.code)})`;
+    case 'incident.updated': {
+      const parts = Object.entries(m.changes ?? {}).map(
+        ([field, c]) => `${field} ${String(c.from ?? '—')} → ${String(c.to ?? '—')}`,
+      );
+      return `updated ${parts.join(', ') || 'details'}`;
+    }
     default:
       return e.eventType;
   }
 }
 
+function DetailSkeleton() {
+  return (
+    <LoadingRegion label="Loading incident">
+      <Skeleton className="mb-3 h-5 w-24" />
+      <Card className="mb-6 p-4">
+        <Skeleton className="mb-3 h-8 w-2/3" />
+        <SkeletonLines lines={2} />
+      </Card>
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="min-w-0 space-y-6 lg:col-span-2">
+          <Skeleton className="h-48" />
+          <Skeleton className="h-40" />
+        </div>
+        <Skeleton className="h-72" />
+      </div>
+    </LoadingRegion>
+  );
+}
+
 export default function IncidentDetailPage() {
   const { id } = useParams<{ id: string }>();
   const me = useMe();
+  const toast = useToast();
   const canWrite = roleRank[me.role] >= roleRank.ENGINEER;
   const detail = useFetch<IncidentDetailResponse>(`/api/incidents/${id}`);
   const members = useFetch<{ members: MemberDto[] }>('/api/members');
-  const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [comment, setComment] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
+  usePageTitle(detail.data?.incident.title ?? 'Incident');
 
   // Live updates: any change to this incident (by anyone) refreshes the page without a reload.
   useIncidentRoom(id);
@@ -88,34 +118,35 @@ export default function IncidentDetailPage() {
   useSocketEvent<{ incidentId: string }>('ai.analysis_failed', onLive);
   useReconnect(refresh);
 
-  if (detail.error && !detail.data) return <ErrorText>{detail.error}</ErrorText>;
-  if (!detail.data) return <p className="text-slate-500">Loading…</p>;
+  if (detail.error && !detail.data)
+    return <ErrorState message={detail.error} onRetry={detail.reload} />;
+  if (!detail.data) return <DetailSkeleton />;
   const { incident, events, comments } = detail.data;
   const nameOf = (userId: unknown) =>
     members.data?.members.find((m) => m.userId === userId)?.name ?? 'someone';
 
-  async function mutate(fn: () => Promise<unknown>) {
-    setError(null);
+  async function mutate(success: string, fn: () => Promise<unknown>) {
     setBusy(true);
     try {
       await fn();
+      toast.success(success);
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'Something went wrong');
+      toast.error(e); // for example "changed by someone else": the refetch below shows the newer state
     } finally {
       setBusy(false);
-      detail.reload(); // always refetch: on a version conflict this shows the newer state
+      detail.reload();
     }
   }
 
   const changeStatus = (status: IncidentStatus) =>
-    mutate(() =>
+    mutate(`Moved to ${status}.`, () =>
       api(`/api/incidents/${id}/status`, {
         method: 'PATCH',
         json: { version: incident.version, status },
       }),
     );
   const assign = (assigneeId: string) =>
-    mutate(() =>
+    mutate(assigneeId ? 'Assignee updated.' : 'Assignee removed.', () =>
       api(`/api/incidents/${id}/assignee`, {
         method: 'PATCH',
         json: { version: incident.version, assigneeId: assigneeId || null },
@@ -124,47 +155,49 @@ export default function IncidentDetailPage() {
   const addComment = (e: React.FormEvent) => {
     e.preventDefault();
     if (!comment.trim()) return;
-    mutate(async () => {
+    mutate('Comment added.', async () => {
       await api(`/api/incidents/${id}/comments`, { method: 'POST', json: { body: comment } });
       setComment('');
     });
   };
 
   return (
-    <article className="space-y-6">
-      <Link href="/incidents" className="text-sm text-indigo-700 underline">
-        ← All incidents
-      </Link>
+    <article>
+      <p className="mb-2 text-sm">
+        <Link href="/incidents" className={linkClass}>
+          ← Incidents
+        </Link>
+      </p>
 
-      <header className="rounded border border-slate-200 bg-white p-4">
+      {/* The header stays in view on wide screens so status and actions are always at hand */}
+      <header className="z-10 mb-6 rounded-lg border border-line bg-surface p-4 shadow-sm lg:sticky lg:top-16">
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h1 className="text-xl font-semibold">{incident.title}</h1>
-            <p className="mt-1 text-sm text-slate-500">
-              {incident.serviceName} · started {formatDate(incident.startedAt)}
+          <div className="min-w-0">
+            <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">{incident.title}</h1>
+            <p className="mt-1 text-sm text-ink-muted">
+              <Link href={`/services/${incident.serviceId}`} className={linkClass}>
+                {incident.serviceName}
+              </Link>{' '}
+              · started {formatDate(incident.startedAt)}
               {incident.resolvedAt && ` · resolved ${formatDate(incident.resolvedAt)}`}
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-1.5">
             <SeverityBadge value={incident.severity} />
             <PriorityBadge value={incident.priority} />
             <StatusBadge value={incident.status} />
           </div>
         </div>
-        {incident.description && (
-          <p className="mt-3 whitespace-pre-wrap text-sm">{incident.description}</p>
-        )}
 
-        <div className="mt-4 flex flex-wrap items-center gap-4 border-t border-slate-100 pt-4">
-          <div className="flex items-center gap-2 text-sm">
-            <span className="text-slate-500">Assignee</span>
+        <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-line pt-3">
+          <label className="flex items-center gap-2 text-sm">
+            <span className="text-ink-muted">Assignee</span>
             {canWrite ? (
               <select
-                aria-label="Assignee"
                 value={incident.assignee?.id ?? ''}
                 disabled={busy}
                 onChange={(e) => assign(e.target.value)}
-                className="rounded border border-slate-300 px-2 py-1 text-sm"
+                className="rounded-md border border-slate-300 bg-surface px-2 py-1.5 text-sm"
               >
                 <option value="">Unassigned</option>
                 {members.data?.members.map((m) => (
@@ -174,12 +207,16 @@ export default function IncidentDetailPage() {
                 ))}
               </select>
             ) : (
-              <span>{incident.assignee?.name ?? 'Unassigned'}</span>
+              <span className="font-medium">{incident.assignee?.name ?? 'Unassigned'}</span>
             )}
-          </div>
+          </label>
           {canWrite && incident.allowedNextStatuses.length > 0 && (
-            <div className="flex items-center gap-2 text-sm">
-              <span className="text-slate-500">Move to</span>
+            <div
+              className="flex flex-wrap items-center gap-2 text-sm"
+              role="group"
+              aria-label="Change status"
+            >
+              <span className="text-ink-muted">Move to</span>
               {incident.allowedNextStatuses.map((s) => (
                 <button
                   key={s}
@@ -193,70 +230,92 @@ export default function IncidentDetailPage() {
             </div>
           )}
         </div>
-        <div className="mt-3">
-          <ErrorText>{error}</ErrorText>
-        </div>
-        <div className="mt-4 border-t border-slate-100 pt-3">
-          <MetricsLine serviceId={incident.serviceId} refreshKey={refreshKey} />
-        </div>
       </header>
 
-      <AiAnalysisPanel incidentId={id} canRun={canWrite} />
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <section>
-          <h2 className="mb-2 font-medium">Comments</h2>
-          <ul className="space-y-3">
-            {comments.length === 0 && <li className="text-sm text-slate-500">No comments yet.</li>}
-            {comments.map((c) => (
-              <li key={c.id} className="rounded border border-slate-200 bg-white p-3 text-sm">
-                <p className="whitespace-pre-wrap">{c.body}</p>
-                <p className="mt-1 text-xs text-slate-500">
-                  {c.author.name} · {formatDate(c.createdAt)}
-                </p>
-              </li>
-            ))}
-          </ul>
-          {canWrite && (
-            <form onSubmit={addComment} className="mt-3 space-y-2">
-              <textarea
-                aria-label="New comment"
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
-                rows={3}
-                maxLength={5000}
-                className={inputClass}
-              />
-              <button className={buttonClass} disabled={busy || !comment.trim()}>
-                Add comment
-              </button>
-            </form>
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="min-w-0 space-y-6 lg:col-span-2">
+          {incident.description && (
+            <Card className="p-4">
+              <h2 className="mb-1 text-sm font-semibold text-ink-muted">Description</h2>
+              <p className="whitespace-pre-wrap text-sm">{incident.description}</p>
+            </Card>
           )}
-        </section>
+          <Card className="p-4">
+            <h2 className="mb-2 text-sm font-semibold text-ink-muted">Service health</h2>
+            <MetricsLine serviceId={incident.serviceId} refreshKey={refreshKey} />
+          </Card>
+          <AiAnalysisPanel incidentId={id} canRun={canWrite} />
+          <LogsPanel incidentId={id} refreshKey={refreshKey} />
+          <DeploymentsPanel
+            incidentId={id}
+            canLink={canWrite}
+            refreshKey={refreshKey}
+            onLinked={detail.reload}
+          />
+        </div>
 
-        <section>
-          <h2 className="mb-2 font-medium">Timeline</h2>
-          <ol className="space-y-3 border-l-2 border-slate-200 pl-4">
-            {events.map((e) => (
-              <li key={e.id} className="text-sm">
-                <p>
-                  <strong>{e.actor.name}</strong> {describeEvent(e, nameOf)}
-                </p>
-                <p className="text-xs text-slate-500">{formatDate(e.createdAt)}</p>
-              </li>
-            ))}
-          </ol>
-        </section>
-      </div>
+        <aside className="min-w-0 space-y-6" aria-label="Activity">
+          <section aria-labelledby="timeline-h">
+            <SectionHeading>
+              <span id="timeline-h">Timeline</span>
+            </SectionHeading>
+            <Card className="p-4">
+              <ol className="relative space-y-4 border-l-2 border-line pl-4">
+                {events.map((e) => (
+                  <li key={e.id} className="relative text-sm">
+                    <span
+                      aria-hidden="true"
+                      className="absolute -left-[1.4rem] top-1.5 h-2.5 w-2.5 rounded-full border-2 border-surface bg-accent-600"
+                    />
+                    <p>
+                      <strong className="font-medium">{e.actor.name}</strong>{' '}
+                      {describeEvent(e, nameOf)}
+                    </p>
+                    <p className="text-xs text-ink-subtle" title={formatDate(e.createdAt)}>
+                      {timeAgo(e.createdAt)}
+                    </p>
+                  </li>
+                ))}
+              </ol>
+            </Card>
+          </section>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <LogsPanel incidentId={id} refreshKey={refreshKey} />
-        <DeploymentsPanel
-          incidentId={id}
-          canLink={canWrite}
-          refreshKey={refreshKey}
-          onLinked={detail.reload}
-        />
+          <section aria-labelledby="comments-h">
+            <SectionHeading>
+              <span id="comments-h">Comments</span>
+            </SectionHeading>
+            <div className="space-y-3">
+              {comments.length === 0 && <p className="text-sm text-ink-muted">No comments yet.</p>}
+              {comments.map((c) => (
+                <Card key={c.id} className="p-3 text-sm">
+                  <p className="whitespace-pre-wrap">{c.body}</p>
+                  <p className="mt-1 text-xs text-ink-subtle">
+                    {c.author.name} · {timeAgo(c.createdAt)}
+                  </p>
+                </Card>
+              ))}
+              {canWrite && (
+                <form onSubmit={addComment} className="space-y-2">
+                  <label className="sr-only" htmlFor="new-comment">
+                    New comment
+                  </label>
+                  <textarea
+                    id="new-comment"
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value)}
+                    rows={3}
+                    maxLength={5000}
+                    placeholder="Add a comment…"
+                    className={inputClass}
+                  />
+                  <Button disabled={!comment.trim()} loading={busy} loadingText="Saving…">
+                    Add comment
+                  </Button>
+                </form>
+              )}
+            </div>
+          </section>
+        </aside>
       </div>
     </article>
   );

@@ -81,3 +81,32 @@ describe('projects and services', () => {
     );
   });
 });
+
+describe('service detail', () => {
+  it('returns one service for any member, 404 for another organization, 400 for a bad id', async () => {
+    const o = await setupOrg(app);
+    const other = await setupOrg(app, 'b');
+    const res = await request(app).get(`/api/services/${o.serviceId}`).set('cookie', o.viewer);
+    expect(res.status).toBe(200);
+    expect(res.body.service).toMatchObject({
+      id: o.serviceId,
+      name: 'Payment Service',
+      projectName: 'Platform',
+      status: 'UNKNOWN',
+    });
+    expect(
+      (await request(app).get(`/api/services/${o.serviceId}`).set('cookie', other.owner)).status,
+    ).toBe(404);
+    expect(
+      (await request(app).get('/api/services/not-a-uuid').set('cookie', o.viewer)).status,
+    ).toBe(400);
+    expect((await request(app).get(`/api/services/${o.serviceId}`)).status).toBe(401);
+  });
+
+  it('does not shadow the health route', async () => {
+    const o = await setupOrg(app);
+    expect((await request(app).get('/api/services/health').set('cookie', o.viewer)).status).toBe(
+      200,
+    );
+  });
+});
