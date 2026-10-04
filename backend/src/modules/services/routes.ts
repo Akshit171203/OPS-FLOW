@@ -1,3 +1,4 @@
+import { demoReadOnly } from '../../middleware/demoGuard';
 import { Router } from 'express';
 import { contextFrom } from '../../lib/context';
 import { parse } from '../../lib/validate';
@@ -15,7 +16,7 @@ servicesRouter.get('/', requireAuth, async (req, res) => {
   res.json(await servicesService.list(contextFrom(req), page, projectId));
 });
 
-servicesRouter.post('/', ...requireRole('ADMIN'), async (req, res) => {
+servicesRouter.post('/', ...requireRole('ADMIN'), demoReadOnly, async (req, res) => {
   const service = await servicesService.create(
     contextFrom(req),
     parse(CreateServiceSchema, req.body),
@@ -23,7 +24,7 @@ servicesRouter.post('/', ...requireRole('ADMIN'), async (req, res) => {
   res.status(201).json({ service });
 });
 
-servicesRouter.patch('/:id', ...requireRole('ADMIN'), async (req, res) => {
+servicesRouter.patch('/:id', ...requireRole('ADMIN'), demoReadOnly, async (req, res) => {
   const { id } = parse(IdParamsSchema, req.params);
   const service = await servicesService.update(
     contextFrom(req),

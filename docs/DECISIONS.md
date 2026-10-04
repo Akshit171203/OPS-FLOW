@@ -338,3 +338,93 @@ Senders know their own service's name, not an OpsFlow UUID, so the API accepts s
 ### A demo you cannot fake
 
 `examples/demo-shop` is a zero-dependency Node website with a small connection pool, its own traffic, and a "bad deploy" switch that leaks connections. It reports deployments, ships logs and metrics, and evaluates its own alert rule, all through the public API with a key. It creates its own key on first run against a seeded local OpsFlow. It also never fails because monitoring is down (the shop kept serving while OpsFlow restarted). Crashing it produced an incident within eight seconds, with the right deployment linked, real logs, DOWN health, notifications and an AI analysis that cites the deployment.
+
+## Phase 8: Ship
+
+### Render for everything, and nothing deployed on the author's behalf
+
+Vercel is the usual home for Next.js but cannot proxy WebSockets, and the live incident view depends on them. Hosting web and API on one platform also keeps the same-origin proxy simple. Render's Blueprint describes the whole stack in one file. I wrote and checked the configuration but did not deploy it: that needs the owner's account, secrets and possibly billing, and a claim of "deployed" should be backed by a URL. [DEPLOYMENT.md](DEPLOYMENT.md) has a checklist to prove it works.
+
+### Embedded workers for hosts with no free workers
+
+`EMBEDDED_WORKERS=true` starts the same three BullMQ workers inside the API process. The separate `worker` entry point stays the default and the right choice when you can afford it, since a slow job then cannot starve HTTP. Both use one `startWorkers()` function so they cannot drift apart. The cost: a restart of the API also stops job processing, and a busy analysis shares CPU with requests.
+
+### Demo mode is a set of restrictions, not a separate app
+
+`DEMO_MODE` adds a public "Try the live demo" sign-in as a seeded admin, and then narrows what that account can do:
+
+- Configuration routes (API keys, members, runbooks, projects, services) refuse demo accounts with `DEMO_READONLY`. Incidents, comments and simulation stay usable, because that is the product.
+- Demo sessions are rate limited per IP, and new AI analyses are capped per day (`AI_DAILY_CAP`), because a public button that spends a paid API key is an invitation.
+- Seed data is rebuilt every `DEMO_RESET_HOURS`, so vandalism is temporary.
+- The restriction keys on the account's email domain _and_ the flag, so real accounts on the same deployment are untouched, and with the flag off the seeded addresses are ordinary users.
+
+The cap counts only analyses that would start a new run; asking again for one already running does not use a slot.
+
+### A production configuration that fails loudly
+
+Session cookies are `Secure` in production. A public `http://` web address would therefore appear to work, then silently never sign anyone in. Startup now refuses that combination (localhost is allowed so the Docker stack runs on a laptop). Failing at boot with a sentence beats debugging a login loop.
+
+### CI: the real database, and a Docker build in the pipeline
+
+CI runs against pgvector and Redis service containers because the tests exercise unique indexes, transactions, HNSW search and Lua scripts that mocks cannot represent. A second job builds both images without pushing them, so a broken Dockerfile fails the pull request, not the first deploy. I ran the workflow's steps from a clean copy of the repository (fresh install, full suite, build), and building the images from a clean context caught a missing `COPY tsconfig.base.json` that the local setup was hiding.
+
+### An unverified number I am flagging
+
+`TRUST_PROXY=3` for Render assumes four hops between browser and API when the web app proxies through its public address. I derived it from how forwarded headers accumulate; I could not test it without deploying. [DEPLOYMENT.md](DEPLOYMENT.md) says how to verify it from the audit log.
+
+## Architecture decision records
+
+Short, in the form: context, decision, consequences, and when I would revisit.
+
+### ADR-1: BullMQ on Redis, not a hand-written queue
+
+- **Context.** Notifications, runbook indexing and AI analysis must run outside the request, survive restarts, retry with backoff and be deduplicated.
+- **Decision.** BullMQ. A table-polling queue in Postgres was the alternative.
+- **Consequences.** Retries, delays, concurrency, stalled-job recovery and a failed-job store come ready-made. Redis becomes required infrastructure, and job delivery is at-least-once, so every handler is idempotent (an `idempotency_keys` row written in the same transaction as the work).
+- **Revisit when** the volume is tiny and removing Redis from the stack matters more (a `FOR UPDATE SKIP LOCKED` table would do), or when strict exactly-once enqueue-with-write is needed (an outbox).
+
+### ADR-2: Optimistic locking with a version column
+
+- **Context.** Several responders edit one incident at once, often from stale screens.
+- **Decision.** Every change carries the version it was based on; the update is `WHERE version = ?`. A mismatch is a 409 and the UI says what happened.
+- **Consequences.** No row locks held across a human's think time, no silent lost updates, and a conflict is visible and explainable. A user occasionally has to reload.
+- **Revisit when** edits become collaborative free text, where merging (or a CRDT) beats rejecting.
+
+### ADR-3: pgvector in Postgres, not a vector database
+
+- **Context.** Runbook retrieval for the AI analysis: hundreds to a few thousand chunks per organization.
+- **Decision.** A `vector` column with an HNSW cosine index, filtered by organization and embedding model.
+- **Consequences.** One system to back up, transactional with the runbook rows, tenant filter in the same query. Recall and speed are fine at this scale. Changing embedding model means re-indexing, which is why vectors are tagged with their model.
+- **Revisit when** corpora reach tens of millions of vectors or need hybrid ranking features Postgres lacks.
+
+### ADR-4: AI is asynchronous, optional and advisory
+
+- **Context.** Model calls are slow, fail, cost money and can be wrong.
+- **Decision.** Analysis is a queued job with progress events; the request returns at once. Output must pass a Zod schema (one repair attempt), the default provider is an offline stand-in, and the result is a suggestion with confidence and evidence.
+- **Consequences.** The app is fully usable with the model down or unconfigured. Failures are a visible state, not a broken page. The UI must explain the offline analyzer honestly. Cost is tracked per run and capped per day.
+- **Revisit when** a use case needs streaming tokens to the user.
+
+### ADR-5: No autonomous agents in version one
+
+- **Context.** "AI that fixes production" is tempting.
+- **Decision.** The model reads and suggests; people act. Every state change goes through the same authenticated, audited, role-checked path as a human's.
+- **Consequences.** Safer and easy to explain, less impressive in a demo. Adding actions later means tool permissions, approvals and an undo story, designed deliberately.
+
+### ADR-6: Express 5, not Fastify or NestJS
+
+- **Context.** A TypeScript HTTP API with validation, middleware and modest throughput.
+- **Decision.** Express 5 (native async error handling) with Zod, explicit layering and typed errors.
+- **Consequences.** Everyone can read it, and the structure is visible instead of framework magic. Fastify would be faster and validate by schema; at this load the difference is irrelevant, and the decision was also the owner's explicit preference.
+- **Revisit when** raw throughput or built-in schema serialisation becomes the bottleneck.
+
+### ADR-7: Same-origin API through a Next.js rewrite
+
+- **Context.** An `HttpOnly` session cookie between two origins needs `SameSite=None`, third-party cookie permissions and a looser CORS policy, and browsers keep tightening that.
+- **Decision.** The browser only talks to the web origin; Next proxies `/api/*` (including Socket.IO) to the API, so the cookie is first-party and `SameSite=Lax`.
+- **Consequences.** Simpler security model and no cross-site cookie failures. One extra hop (so `TRUST_PROXY` must be right), and `API_URL` is fixed at build time.
+
+### ADR-8: API keys are random, hashed with SHA-256, and tied to bot users
+
+- **Context.** Machines need credentials that are not a person's password.
+- **Decision.** `ofk_` plus 256 random bits, stored as a SHA-256 hash, shown once, scoped, optionally locked to one service, revocable. Each key owns a hidden bot user so audit and timeline attribution need no special cases.
+- **Consequences.** A database leak does not leak usable keys. A fast hash is safe because the secret has full entropy; a slow hash would only add latency to every ingest request. Every place that lists or notifies people must exclude bots, which is tested.

@@ -5,11 +5,9 @@ import { logger } from './lib/logger';
 import { closeSharedRedis } from './lib/redis';
 import { gracefulShutdown } from './lib/shutdown';
 import { closeRealtimePublisher } from './realtime/channel';
-import { createAnalysisWorker } from './workers/analysisWorker';
-import { createEventWorker } from './workers/eventWorker';
-import { createRunbookWorker } from './workers/runbookWorker';
+import { startWorkers } from './workers';
 
-const workers = [createEventWorker(), createRunbookWorker(), createAnalysisWorker()];
+const workers = startWorkers();
 logger.info({ queues: workers.map((w) => w.name) }, 'worker started');
 
 let shuttingDown = false;

@@ -1,3 +1,4 @@
+import { demoReadOnly } from '../../middleware/demoGuard';
 import { Router } from 'express';
 import { z } from 'zod';
 import { contextFrom } from '../../lib/context';
@@ -27,11 +28,11 @@ runbooksRouter.get('/', requireAuth, async (req, res) => {
   res.json(await runbooksService.list(contextFrom(req), parse(PaginationSchema, req.query)));
 });
 
-runbooksRouter.post('/reindex-all', ...requireRole('ADMIN'), async (req, res) => {
+runbooksRouter.post('/reindex-all', ...requireRole('ADMIN'), demoReadOnly, async (req, res) => {
   res.status(202).json(await runbooksService.reindexAll(contextFrom(req)));
 });
 
-runbooksRouter.post('/', ...requireRole('ADMIN'), async (req, res) => {
+runbooksRouter.post('/', ...requireRole('ADMIN'), demoReadOnly, async (req, res) => {
   const runbook = await runbooksService.create(
     contextFrom(req),
     parse(CreateRunbookSchema, req.body),
@@ -44,7 +45,7 @@ runbooksRouter.get('/:id', requireAuth, async (req, res) => {
   res.json({ runbook: await runbooksService.get(contextFrom(req), id) });
 });
 
-runbooksRouter.patch('/:id', ...requireRole('ADMIN'), async (req, res) => {
+runbooksRouter.patch('/:id', ...requireRole('ADMIN'), demoReadOnly, async (req, res) => {
   const { id } = parse(IdParamsSchema, req.params);
   res.json({
     runbook: await runbooksService.update(

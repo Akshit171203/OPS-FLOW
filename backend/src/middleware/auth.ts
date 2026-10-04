@@ -41,7 +41,7 @@ export interface CookieSettings {
 /** Cookie flags per environment: Secure in production, SameSite and Domain from configuration. */
 export function authCookieOptions(
   settings: CookieSettings = {
-    secure: isProduction,
+    secure: config.COOKIE_SECURE ?? isProduction,
     sameSite: config.COOKIE_SAMESITE,
     domain: config.COOKIE_DOMAIN,
   },

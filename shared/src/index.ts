@@ -31,6 +31,8 @@ export interface MeResponse {
   user: { id: string; email: string; name: string };
   organization: { id: string; name: string };
   role: Role;
+  /** True when signed in to the public demo (some admin settings are read-only there). */
+  demo?: boolean;
 }
 
 export interface MemberDto {

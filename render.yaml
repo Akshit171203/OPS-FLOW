@@ -1,0 +1,74 @@
+# Render Blueprint for OpsFlow: one Postgres, one Redis, the API and the web app.
+# Nothing here is deployed automatically. See docs/DEPLOYMENT.md for the steps.
+#
+# Free-tier shape: Render has no free background workers, so the API runs the queue
+# workers inside its own process (EMBEDDED_WORKERS). Free web services sleep after
+# 15 minutes idle, free Postgres expires after 30 days, free Key Value is not persisted.
+
+databases:
+  - name: opsflow-db
+    plan: free
+    databaseName: opsflow
+    user: opsflow
+    postgresMajorVersion: '16'
+
+services:
+  - type: keyvalue
+    name: opsflow-redis
+    plan: free
+    # BullMQ stores jobs here; evicting keys would silently drop queued work.
+    maxmemoryPolicy: noeviction
+    ipAllowList: [] # internal connections only
+
+  - type: web
+    name: opsflow-api
+    runtime: docker
+    plan: free
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: .
+    dockerCommand: sh -c "pnpm --filter @opsflow/backend db:migrate && pnpm --filter @opsflow/backend start"
+    healthCheckPath: /ready
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: opsflow-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: opsflow-redis
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      # The public https address of opsflow-web, for example https://opsflow-web.onrender.com
+      - key: WEB_ORIGIN
+        sync: false
+      # Hops between the browser and the API: Render's load balancer, the Next.js server,
+      # Render's load balancer again. UNVERIFIED until deployed: after the first sign-in,
+      # check that audit_logs.ip_address is your own address and adjust this number if not.
+      - key: TRUST_PROXY
+        value: '3'
+      - key: DEMO_MODE
+        value: 'true'
+      - key: EMBEDDED_WORKERS
+        value: 'true'
+      - key: AI_PROVIDER
+        value: fake
+      - key: AI_DAILY_CAP
+        value: '30'
+      - key: GEMINI_API_KEY
+        sync: false
+
+  - type: web
+    name: opsflow-web
+    runtime: docker
+    plan: free
+    dockerfilePath: ./frontend/Dockerfile
+    dockerContext: .
+    healthCheckPath: /login
+    envVars:
+      # The public https address of opsflow-api. Baked into the build, so changing it needs a rebuild.
+      - key: API_URL
+        sync: false

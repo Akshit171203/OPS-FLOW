@@ -116,6 +116,19 @@ export const analysisRepository = {
     return row;
   },
 
+  async countSince(ex: Executor, organizationId: string, since: Date): Promise<number> {
+    const [row] = await ex
+      .select({ n: sql<number>`count(*)::int` })
+      .from(aiAnalyses)
+      .where(
+        and(
+          eq(aiAnalyses.organizationId, organizationId),
+          sql`${aiAnalyses.createdAt} >= ${since}`,
+        ),
+      );
+    return row?.n ?? 0;
+  },
+
   async usage(ex: Executor, organizationId: string, since: Date) {
     const [row] = await ex
       .select({

@@ -217,6 +217,15 @@ export function AppShell({
           <NotificationBell />
           <UserMenu me={me} onSignOut={onSignOut} />
         </header>
+        {me.demo && (
+          <div
+            role="note"
+            className="border-b border-notice-line bg-notice-bg px-4 py-2 text-center text-sm text-notice-fg sm:px-6"
+          >
+            <strong>Public demo.</strong> The data is shared with other visitors and resets
+            regularly. Settings such as API keys, members and runbooks are read-only here.
+          </div>
+        )}
         <main id="main" tabIndex={-1} className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6">
           {children}
         </main>

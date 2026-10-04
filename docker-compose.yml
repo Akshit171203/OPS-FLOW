@@ -24,6 +24,7 @@ services:
       timeout: 3s
       retries: 10
   # The application containers are opt-in: `docker compose --profile app up --build`
+  # Everything you can override is in the x-app-env block below (for example DEMO_MODE=true EMBEDDED_WORKERS=true).
   api:
     profiles: ['app']
     build: { context: ., dockerfile: backend/Dockerfile }
@@ -35,6 +36,11 @@ services:
       DATABASE_URL: postgres://opsflow:opsflow@postgres:5432/opsflow
       REDIS_URL: redis://redis:6379
       JWT_SECRET: ${JWT_SECRET:-compose-dev-secret-compose-dev-secret-123}
+      TRUST_PROXY: 1 # the web container's /api proxy is one hop in front of the API
+      COOKIE_SECURE: ${COOKIE_SECURE:-false} # plain http on localhost; leave on (the default) behind https
+      DEMO_MODE: ${DEMO_MODE:-false}
+      EMBEDDED_WORKERS: ${EMBEDDED_WORKERS:-false}
+      AI_PROVIDER: ${AI_PROVIDER:-fake}
     ports: ['4100:4100']
     depends_on:
       postgres: { condition: service_healthy }
@@ -44,6 +50,17 @@ services:
     build: { context: ., dockerfile: backend/Dockerfile }
     command: pnpm --filter @opsflow/backend start:worker
     environment: *app-env
+    healthcheck: { disable: true } # the worker serves no HTTP, so the API image's HTTP check would always fail
+    depends_on:
+      api: { condition: service_started }
+  web:
+    profiles: ['app']
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      args:
+        API_URL: http://api:4100
+    ports: ['3140:3140']
     depends_on:
       api: { condition: service_started }
 volumes:

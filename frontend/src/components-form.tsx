@@ -16,6 +16,7 @@ export function AuthForm({
   fields,
   submitLabel,
   alt,
+  extra,
 }: {
   title: string;
   subtitle: string;
@@ -23,6 +24,8 @@ export function AuthForm({
   fields: Field[];
   submitLabel: string;
   alt: { href: string; text: string };
+  /** Optional content under the card, such as the demo button. */
+  extra?: React.ReactNode;
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -85,6 +88,7 @@ export function AuthForm({
           </Button>
         </form>
       </Card>
+      {extra}
       <p className="mt-4 text-center text-sm text-ink-muted">
         <Link href={alt.href} className={linkClass}>
           {alt.text}

@@ -1,3 +1,4 @@
+import { demoReadOnly } from '../../middleware/demoGuard';
 import { Router } from 'express';
 import { z } from 'zod';
 import { apiKeyScopes } from '@opsflow/shared';
@@ -20,7 +21,7 @@ apiKeysRouter.get('/', ...requireRole('ADMIN'), async (req, res) => {
   res.json({ keys: await apiKeysService.list(contextFrom(req)) });
 });
 
-apiKeysRouter.post('/', ...requireRole('ADMIN'), async (req, res) => {
+apiKeysRouter.post('/', ...requireRole('ADMIN'), demoReadOnly, async (req, res) => {
   const input = parse(CreateApiKeySchema, req.body);
   const key = await apiKeysService.create(contextFrom(req), {
     ...input,
@@ -29,7 +30,7 @@ apiKeysRouter.post('/', ...requireRole('ADMIN'), async (req, res) => {
   res.status(201).json({ key });
 });
 
-apiKeysRouter.delete('/:id', ...requireRole('ADMIN'), async (req, res) => {
+apiKeysRouter.delete('/:id', ...requireRole('ADMIN'), demoReadOnly, async (req, res) => {
   const { id } = parse(IdParamsSchema, req.params);
   res.json({ key: await apiKeysService.revoke(contextFrom(req), id) });
 });

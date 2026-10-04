@@ -1,7 +1,7 @@
 import argon2 from 'argon2';
 import { eq, like } from 'drizzle-orm';
 import type { Role } from '@opsflow/shared';
-import { isProduction } from '../lib/config';
+import { config, isProduction } from '../lib/config';
 import { getAIProvider } from '../modules/ai';
 import { indexRunbook, markIndexFailed } from '../modules/runbooks/indexer';
 import { SEED_RUNBOOKS } from './seedRunbooks';
@@ -55,7 +55,9 @@ const chunk = <T>(arr: T[], n: number) =>
  * Simulate button so it can be replayed at will.
  */
 export async function seed() {
-  if (isProduction) throw new Error('Refusing to seed demo data when NODE_ENV=production');
+  if (isProduction && !config.DEMO_MODE) {
+    throw new Error('Refusing to seed demo data in production unless DEMO_MODE=true');
+  }
 
   // Wipe a previous run. Deleting the org cascades to everything it owns; users are separate.
   await db.delete(organizations).where(eq(organizations.name, DEMO_ORG_NAME));

@@ -1,3 +1,4 @@
+import { demoReadOnly } from '../../middleware/demoGuard';
 import { Router } from 'express';
 import { contextFrom } from '../../lib/context';
 import { PaginationSchema } from '../../lib/pagination';
@@ -12,7 +13,7 @@ projectsRouter.get('/', requireAuth, async (req, res) => {
   res.json(await projectsService.list(contextFrom(req), parse(PaginationSchema, req.query)));
 });
 
-projectsRouter.post('/', ...requireRole('ADMIN'), async (req, res) => {
+projectsRouter.post('/', ...requireRole('ADMIN'), demoReadOnly, async (req, res) => {
   const project = await projectsService.create(
     contextFrom(req),
     parse(CreateProjectSchema, req.body),
@@ -20,7 +21,7 @@ projectsRouter.post('/', ...requireRole('ADMIN'), async (req, res) => {
   res.status(201).json({ project });
 });
 
-projectsRouter.patch('/:id', ...requireRole('ADMIN'), async (req, res) => {
+projectsRouter.patch('/:id', ...requireRole('ADMIN'), demoReadOnly, async (req, res) => {
   const { id } = parse(IdParamsSchema, req.params);
   const project = await projectsService.update(
     contextFrom(req),

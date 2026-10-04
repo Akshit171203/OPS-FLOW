@@ -2,6 +2,7 @@ import { Router } from 'express';
 import type { MeResponse } from '@opsflow/shared';
 import { clearAuthCookie, requireAuth, setAuthCookie, signToken } from '../../middleware/auth';
 import { parse } from '../../lib/validate';
+import { isDemoAccount } from '../../middleware/demoGuard';
 import { loginByEmailLimit, loginLimit, registerLimit } from '../../middleware/rateLimit';
 import { LoginSchema, RegisterSchema } from './schemas';
 import { authService } from './service';
@@ -33,6 +34,7 @@ authRouter.get('/me', requireAuth, (req, res) => {
     user: { id: a.userId, email: a.email, name: a.name },
     organization: { id: a.organizationId, name: a.organizationName },
     role: a.role,
+    ...(isDemoAccount(a.email) ? { demo: true } : {}),
   };
   res.json(me);
 });

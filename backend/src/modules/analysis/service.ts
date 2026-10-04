@@ -2,7 +2,8 @@ import type { AiAnalysisResponse, AiUsageDto, StartAnalysisResponse } from '@ops
 import { db } from '../../db/client';
 import { getAnalysisQueue } from '../../events/queues';
 import type { RequestContext } from '../../lib/context';
-import { AppError, ConflictError, NotFoundError } from '../../lib/errors';
+import { config } from '../../lib/config';
+import { AppError, ConflictError, NotFoundError, RateLimitError } from '../../lib/errors';
 import { isUniqueViolation } from '../../lib/dbErrors';
 import { acquireLock, releaseLock } from '../../lib/locks';
 import { logger } from '../../lib/logger';
@@ -69,6 +70,18 @@ export const analysisService = {
     try {
       const active = await repo.findActive(db, orgId, incidentId);
       if (active && (await expireIfStale(ctx, active))) return asStart(active, true);
+
+      // Cost protection: a cap on how many analyses an organization may start per rolling 24 hours.
+      // Checked only when a NEW analysis would start, so re-clicking a running one is never blocked by it.
+      if (config.AI_DAILY_CAP > 0) {
+        const started = await repo.countSince(db, orgId, new Date(Date.now() - 24 * 3_600_000));
+        if (started >= config.AI_DAILY_CAP) {
+          throw new RateLimitError(
+            `This organization has reached its limit of ${config.AI_DAILY_CAP} AI analyses per day. It resets as older ones age out.`,
+            'AI_DAILY_CAP',
+          );
+        }
+      }
 
       let row: AnalysisRow;
       try {
