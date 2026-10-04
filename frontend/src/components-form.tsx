@@ -49,7 +49,7 @@ export function AuthForm({
   }
 
   return (
-    <div className="grid min-h-screen lg:grid-cols-2">
+    <div className="grid min-h-screen lg:grid-cols-[1.4fr_1fr]">
       <AuthCarousel />
 
       {/* The form side stays light in either theme, like the rest of the sign-in screen's contrast */}

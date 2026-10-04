@@ -34,7 +34,7 @@ const SLIDE_MS = 6000;
 /* ---------- widgets: miniatures of OpsFlow's own screens, on white cards ---------- */
 
 const card =
-  'last:[@media(max-height:820px)]:hidden theme-light auth-blue w-[11rem] shrink-0 rounded-xl bg-surface p-3 text-ink shadow-[0_10px_30px_-8px_rgb(0_0_0/0.6)] xl:w-[13.5rem]';
+  'theme-light auth-blue w-[11rem] shrink-0 rounded-xl bg-surface p-3 text-ink shadow-[0_10px_30px_-8px_rgb(0_0_0/0.6)] xl:w-[13.5rem]';
 
 function CardTitle({ title, sub }: { title: string; sub?: string }) {
   return (
@@ -154,6 +154,72 @@ const StepsMini = () => (
   </div>
 );
 
+const MetricsMini = () => (
+  <div className={card}>
+    <CardTitle title="Payment Service" sub="Latest metrics" />
+    <div className="mt-2 grid grid-cols-3 gap-1 text-[9px] text-ink-subtle">
+      <div>
+        Error rate<b className="mt-0.5 block text-[12px] text-sev1-fg">34.0%</b>
+      </div>
+      <div>
+        Latency<b className="mt-0.5 block text-[12px] text-ink">5200 ms</b>
+      </div>
+      <div>
+        Traffic<b className="mt-0.5 block text-[12px] text-ink">410/min</b>
+      </div>
+    </div>
+    <svg viewBox="0 0 120 26" className="mt-2 h-6 w-full" fill="none" aria-hidden="true">
+      <path
+        d="M0 22 L14 21 L28 23 L42 19 L56 20 L70 16 L84 9 L98 6 L120 3"
+        stroke="var(--color-dot-bad)"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  </div>
+);
+
+const RunbookMini = () => (
+  <div className={card}>
+    <CardTitle title="Runbook match" />
+    <div className="mt-2 flex items-center gap-2">
+      <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-accent-soft text-accent-ink">
+        <BookOpen className="h-3.5 w-3.5" />
+      </span>
+      <div className="min-w-0">
+        <p className="truncate text-[11px] font-medium">Payment service troubleshooting</p>
+        <p className="text-[9px] text-ink-subtle">Indexed · best match for this incident</p>
+      </div>
+    </div>
+  </div>
+);
+
+const RespondersMini = () => (
+  <div className={card}>
+    <CardTitle title="Responders" sub="Assigned and watching" />
+    <ul className="mt-2 space-y-1.5">
+      {(
+        [
+          ['Adam Admin', 'Assignee'],
+          ['Erin Engineer', 'Investigating'],
+        ] as const
+      ).map(([name, role]) => (
+        <li key={name} className="flex items-center gap-2 text-[11px]">
+          <span className="grid h-5 w-5 place-items-center rounded-full bg-accent-600 text-[8px] font-semibold text-white">
+            {name
+              .split(' ')
+              .map((w) => w[0])
+              .join('')}
+          </span>
+          <span className="flex-1 truncate">{name}</span>
+          <span className="text-[9px] text-ink-subtle">{role}</span>
+        </li>
+      ))}
+    </ul>
+  </div>
+);
+
 const LifecycleMini = () => {
   const current = incidentStatuses.indexOf('INVESTIGATING');
   return (
@@ -253,6 +319,7 @@ const slides: Slide[] = [
         <IncidentMini />
         <HealthMini />
         <DeployMini />
+        <MetricsMini />
       </>
     ),
   },
@@ -266,6 +333,7 @@ const slides: Slide[] = [
         <CausesMini />
         <EvidenceMini />
         <StepsMini />
+        <RunbookMini />
       </>
     ),
   },
@@ -279,6 +347,7 @@ const slides: Slide[] = [
         <LifecycleMini />
         <TimelineMini />
         <CommentMini />
+        <RespondersMini />
       </>
     ),
   },
@@ -352,17 +421,17 @@ export function AuthCarousel() {
         >
           {/* stage: the tablet frame is taller than the stage, so its bottom is cropped */}
           <div className="relative flex-1 overflow-hidden" aria-hidden="true">
-            <div className="absolute inset-x-[11%] top-[14%] bottom-[-30%] rounded-tl-[3rem] border-l-[3px] border-t-[3px] border-white/25 bg-[#1b1b1d] shadow-[inset_0_0_80px_rgb(0_0_0/0.5)]">
-              <span className="absolute left-1/2 top-3 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-white/20" />
-              <span className="absolute left-[18%] top-[-3px] h-[3px] w-24 rounded-b bg-white/35" />
-              <span className="absolute left-[40%] top-[-3px] h-[3px] w-24 rounded-b bg-white/35" />
+            <div className="absolute inset-x-[6%] top-[9%] bottom-[-34%] rounded-tl-[3.25rem] border-l-[3px] border-t-[3px] border-white/25 bg-[#1b1b1d] shadow-[inset_0_0_80px_rgb(0_0_0/0.5)]">
+              <span className="absolute left-1/2 top-3.5 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-white/20" />
+              <span className="absolute left-[18%] top-[-3px] h-[3px] w-28 rounded-b bg-white/35" />
+              <span className="absolute left-[42%] top-[-3px] h-[3px] w-28 rounded-b bg-white/35" />
 
-              <div className="absolute inset-0 overflow-hidden rounded-tl-[3rem]">
-                <div className="absolute left-[8%] top-[24%] w-[84%]">
-                  <h2 className="max-w-[46%] text-[clamp(1.9rem,3.3vw,3.6rem)] font-semibold leading-[1.04] tracking-tight">
+              <div className="absolute inset-0 flex overflow-hidden rounded-tl-[3.25rem]">
+                <div className="flex min-w-0 flex-1 flex-col justify-center pb-[18%] pl-[7%] pr-8">
+                  <h2 className="text-[clamp(2.1rem,3.7vw,4.2rem)] font-semibold leading-[1.04] tracking-tight">
                     {slide.heading}
                   </h2>
-                  <div className="mt-[clamp(1.5rem,5vh,3.5rem)] flex gap-x-[clamp(0.7rem,1.35vw,1.4rem)] max-xl:[&>*:nth-child(n+5)]:hidden [@media(max-height:760px)]:hidden">
+                  <div className="mt-[clamp(1.75rem,6vh,4rem)] flex justify-between [@media(max-height:700px)]:hidden">
                     {slide.icons.map((Icon, i) => (
                       <motion.span
                         key={i}
@@ -371,7 +440,7 @@ export function AuthCarousel() {
                         transition={{ delay: 0.25 + i * 0.06 }}
                       >
                         <Icon
-                          className="h-[clamp(1.4rem,2vw,2.1rem)] w-[clamp(1.4rem,2vw,2.1rem)] text-white"
+                          className="h-[clamp(1.5rem,2.3vw,2.5rem)] w-[clamp(1.5rem,2.3vw,2.5rem)] text-white"
                           strokeWidth={2}
                         />
                       </motion.span>
@@ -379,7 +448,7 @@ export function AuthCarousel() {
                   </div>
                 </div>
 
-                <div className="absolute right-4 top-3 flex flex-col gap-3">{slide.widgets}</div>
+                <div className="flex shrink-0 flex-col gap-3 pr-4 pt-4">{slide.widgets}</div>
               </div>
             </div>
           </div>
