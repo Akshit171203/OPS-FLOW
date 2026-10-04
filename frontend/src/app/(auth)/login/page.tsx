@@ -6,11 +6,11 @@ export const metadata = { title: 'Sign in · OpsFlow' };
 export default function LoginPage() {
   return (
     <AuthForm
-      title="Sign in"
-      subtitle="Welcome back. Enter your details to continue."
+      title="Welcome back"
+      subtitle="Please enter your details to sign in."
       endpoint="/api/auth/login"
       submitLabel="Sign in"
-      alt={{ href: '/register', text: 'New here? Create an organization' }}
+      alt={{ prefix: 'New to OpsFlow?', href: '/register', text: 'Create an organization' }}
       extra={<DemoButton />}
       fields={[
         { name: 'email', label: 'Email', type: 'email', autoComplete: 'email' },

@@ -2,10 +2,19 @@ import { Check } from 'lucide-react';
 import { incidentStatuses, type IncidentStatus } from '@opsflow/shared';
 
 /** Where the incident is in its lifecycle: finished steps, the current one, and what is left. */
-export function LifecycleStepper({ status }: { status: IncidentStatus }) {
+export function LifecycleStepper({
+  status,
+  wrap = false,
+}: {
+  status: IncidentStatus;
+  wrap?: boolean;
+}) {
   const current = incidentStatuses.indexOf(status);
   return (
-    <ol aria-label="Incident lifecycle" className="flex items-center gap-1 overflow-x-auto pb-1">
+    <ol
+      aria-label="Incident lifecycle"
+      className={`flex items-center gap-1 ${wrap ? 'flex-wrap gap-y-2' : 'overflow-x-auto pb-1'}`}
+    >
       {incidentStatuses.map((s, i) => {
         const done = i < current;
         const active = i === current;

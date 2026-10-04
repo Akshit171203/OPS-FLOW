@@ -9,7 +9,7 @@ export default function RegisterPage() {
       subtitle="You will be its owner and can invite your team afterwards."
       endpoint="/api/auth/register"
       submitLabel="Create account"
-      alt={{ href: '/login', text: 'Already registered? Sign in' }}
+      alt={{ prefix: 'Already registered?', href: '/login', text: 'Sign in' }}
       fields={[
         { name: 'name', label: 'Your name', autoComplete: 'name' },
         { name: 'organizationName', label: 'Organization name', autoComplete: 'organization' },

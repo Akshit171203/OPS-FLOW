@@ -173,6 +173,63 @@
   --color-dot-idle: #64748b;
 }
 
+/* Forces the light token set on an element, whatever the page theme is (used by the sign-in form). */
+.theme-light {
+  color-scheme: light;
+  --color-accent-600: #5850ec;
+  --color-accent-700: #4a43d6;
+  --color-accent-soft: #eef0ff;
+  --color-accent-ink: #4338ca;
+  --color-canvas: #f6f7f9;
+  --color-surface: #ffffff;
+  --color-surface-2: #f1f3f7;
+  --color-skeleton: #e4e7ee;
+  --color-line: #e3e6ec;
+  --color-line-strong: #cdd2dc;
+  --color-ink: #0b0d12;
+  --color-ink-muted: #474e5f;
+  --color-ink-subtle: #5d6475;
+  --color-sev1-bg: #fee2e2;
+  --color-sev1-fg: #991b1b;
+  --color-sev2-bg: #ffedd5;
+  --color-sev2-fg: #9a3412;
+  --color-sev3-bg: #fef9c3;
+  --color-sev3-fg: #854d0e;
+  --color-sev4-bg: #eef0f4;
+  --color-sev4-fg: #334155;
+  --color-open-bg: #e0e7ff;
+  --color-open-fg: #3730a3;
+  --color-investigating-bg: #fef3c7;
+  --color-investigating-fg: #92400e;
+  --color-mitigating-bg: #dbeafe;
+  --color-mitigating-fg: #1e40af;
+  --color-resolved-bg: #dcfce7;
+  --color-resolved-fg: #166534;
+  --color-closed-bg: #eef0f4;
+  --color-closed-fg: #475569;
+  --color-healthy-bg: #dcfce7;
+  --color-healthy-fg: #166534;
+  --color-degraded-bg: #fef3c7;
+  --color-degraded-fg: #92400e;
+  --color-down-bg: #fee2e2;
+  --color-down-fg: #991b1b;
+  --color-unknown-bg: #eef0f4;
+  --color-unknown-fg: #475569;
+  --color-danger-bg: #fef2f2;
+  --color-danger-fg: #991b1b;
+  --color-danger-line: #fecaca;
+  --color-success-bg: #f0fdf4;
+  --color-success-fg: #166534;
+  --color-success-line: #bbf7d0;
+  --color-notice-bg: #fffbeb;
+  --color-notice-fg: #92400e;
+  --color-notice-line: #fde68a;
+  --color-dot-ok: #16a34a;
+  --color-dot-warn: #d97706;
+  --color-dot-bad: #dc2626;
+  --color-dot-idle: #94a3b8;
+}
+
 @layer base {
   html {
     background: var(--color-canvas);
