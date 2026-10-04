@@ -313,15 +313,21 @@ export function AuthCarousel() {
           transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
           className="flex flex-1 flex-col"
         >
-          {/* stage: the tablet frame is taller than the stage, so its bottom is cropped */}
+          {/* stage: an iPad held in landscape, taller than the stage so its bottom edge is cropped */}
           <div className="relative flex-1 overflow-hidden" aria-hidden="true">
-            <div className="absolute inset-x-[11%] top-[14%] bottom-[-30%] rounded-tl-[3rem] border-l-[3px] border-t-[3px] border-white/25 bg-[#1b1b1d] shadow-[inset_0_0_80px_rgb(0_0_0/0.5)]">
-              <span className="absolute left-1/2 top-3 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-white/20" />
-              <span className="absolute left-[18%] top-[-3px] h-[3px] w-24 rounded-b bg-white/35" />
-              <span className="absolute left-[40%] top-[-3px] h-[3px] w-24 rounded-b bg-white/35" />
+            <div className="absolute inset-x-[9%] top-[14%] bottom-[-30%] rounded-t-[2.6rem] border-x-[3px] border-t-[3px] border-[#8d8d95] bg-black shadow-[0_0_0_1px_rgb(255_255_255/0.07),0_-12px_40px_-12px_rgb(255_255_255/0.08)]">
+              {/* side buttons sit just outside the top edge: a small power button, and a larger volume rocker split in two */}
+              <span className="absolute -top-[10px] left-[13%] h-[8px] w-9 rounded-t-[4px] bg-gradient-to-b from-[#c4c4cb] to-[#8d8d95]" />
+              <span className="absolute -top-[10px] left-[62%] h-[8px] w-[4.5rem] rounded-t-[4px] bg-gradient-to-b from-[#c4c4cb] to-[#8d8d95] before:absolute before:inset-y-0 before:left-1/2 before:w-px before:-translate-x-1/2 before:bg-black/45" />
 
-              <div className="absolute inset-0 overflow-hidden rounded-tl-[3rem]">
-                <div className="absolute left-[8%] top-[24%] w-[84%]">
+              {/* front camera: centred in the top bezel */}
+              <span className="absolute left-1/2 top-[7px] grid h-[8px] w-[8px] -translate-x-1/2 place-items-center rounded-full bg-[#0c0d10] ring-[1.5px] ring-[#2a2d35]">
+                <span className="h-[3px] w-[3px] rounded-full bg-[#2f4366]" />
+              </span>
+
+              {/* the screen, inside the bezel; widgets are cropped by its edge */}
+              <div className="absolute inset-x-[14px] bottom-0 top-[24px] overflow-hidden rounded-t-[1.5rem] bg-[#1b1b1d] shadow-[inset_0_0_80px_rgb(0_0_0/0.45)]">
+                <div className="absolute left-[8%] top-[22%] w-[84%]">
                   <h2 className="max-w-[46%] text-[clamp(1.9rem,3.3vw,3.6rem)] font-semibold leading-[1.04] tracking-tight">
                     {slide.heading}
                   </h2>
@@ -342,7 +348,7 @@ export function AuthCarousel() {
                   </div>
                 </div>
 
-                <div className="absolute right-[-2.75rem] top-3 flex flex-col gap-3">
+                <div className="absolute right-[-2.25rem] top-3 flex flex-col gap-3">
                   {slide.widgets}
                 </div>
               </div>
