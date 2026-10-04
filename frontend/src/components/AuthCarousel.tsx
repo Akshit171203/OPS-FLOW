@@ -5,6 +5,7 @@ import {
   Activity,
   BellRing,
   BookOpen,
+  Check,
   CheckCircle2,
   Clock,
   FileSearch,
@@ -24,13 +25,16 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
+import { incidentStatuses } from '@opsflow/shared';
+import { StatusDot } from './StatusDot';
+import { SeverityBadge, StatusBadge } from './ui';
 
 const SLIDE_MS = 6000;
 
-/* ---------- small widgets: white cards, like the dashboards they stand for ---------- */
+/* ---------- widgets: miniatures of OpsFlow's own screens, on white cards ---------- */
 
 const card =
-  'last:[@media(max-height:820px)]:hidden theme-light auth-blue w-[11rem] shrink-0 xl:w-[13.5rem] rounded-xl bg-surface p-3 text-ink shadow-[0_10px_30px_-8px_rgb(0_0_0/0.6)]';
+  'last:[@media(max-height:820px)]:hidden theme-light auth-blue w-[11rem] shrink-0 rounded-xl bg-surface p-3 text-ink shadow-[0_10px_30px_-8px_rgb(0_0_0/0.6)] xl:w-[13.5rem]';
 
 function CardTitle({ title, sub }: { title: string; sub?: string }) {
   return (
@@ -41,78 +45,192 @@ function CardTitle({ title, sub }: { title: string; sub?: string }) {
   );
 }
 
-function Bars({ items }: { items: { label: string; value: number }[] }) {
-  const max = Math.max(...items.map((i) => i.value));
-  return (
-    <div className="mt-3 flex h-20 items-end gap-3">
-      {items.map((i, n) => (
-        <div key={i.label} className="flex flex-1 flex-col items-center justify-end gap-1">
-          <motion.div
-            initial={{ height: 0 }}
-            animate={{ height: Math.round((i.value / max) * 64) }}
-            transition={{ delay: 0.5 + n * 0.1, duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-            className="w-full rounded-t bg-accent-600"
-          />
-          <span className="text-[8px] text-ink-subtle">{i.label}</span>
-        </div>
+const IncidentMini = () => (
+  <div className={card}>
+    <div className="flex flex-wrap items-center gap-1">
+      <SeverityBadge value="SEV1" />
+      <StatusBadge value="OPEN" />
+    </div>
+    <p className="mt-2 text-[12px] font-semibold leading-snug">
+      Payment failures spiking after v2.4.0 rollout
+    </p>
+    <p className="mt-1 text-[10px] text-ink-subtle">Payment Service · opened by alert</p>
+  </div>
+);
+
+const HealthMini = () => (
+  <div className={card}>
+    <CardTitle title="Service health" />
+    <ul className="mt-2 space-y-1.5">
+      {(
+        [
+          ['Auth Service', 'HEALTHY'],
+          ['Payment Service', 'DEGRADED'],
+          ['Order Service', 'HEALTHY'],
+        ] as const
+      ).map(([name, status]) => (
+        <li key={name} className="flex items-center justify-between text-[11px]">
+          <span className="flex items-center gap-1.5">
+            <StatusDot status={status} />
+            {name}
+          </span>
+          <span className="text-[9px] uppercase tracking-wide text-ink-subtle">{status}</span>
+        </li>
       ))}
-    </div>
-  );
-}
+    </ul>
+  </div>
+);
 
-function Spark({ color = '#dc2626' }: { color?: string }) {
-  return (
-    <svg viewBox="0 0 120 32" className="mt-2 h-8 w-full" fill="none" aria-hidden="true">
-      <path
-        d="M0 26 L12 24 L24 27 L36 22 L48 25 L60 20 L72 23 L84 12 L96 8 L108 4 L120 3"
-        stroke={color}
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function Donut({ value }: { value: number }) {
-  const r = 22;
-  const c = 2 * Math.PI * r;
-  return (
-    <div className="relative mt-2 grid h-[4.5rem] w-[4.5rem] place-items-center">
-      <svg viewBox="0 0 56 56" className="absolute inset-0 -rotate-90" aria-hidden="true">
-        <circle cx="28" cy="28" r={r} fill="none" stroke="var(--color-skeleton)" strokeWidth="6" />
-        <motion.circle
-          cx="28"
-          cy="28"
-          r={r}
-          fill="none"
-          stroke="var(--color-accent-600)"
-          strokeWidth="6"
-          strokeLinecap="round"
-          strokeDasharray={c}
-          initial={{ strokeDashoffset: c }}
-          animate={{ strokeDashoffset: c * (1 - value / 100) }}
-          transition={{ delay: 0.6, duration: 1, ease: [0.22, 1, 0.36, 1] }}
-        />
-      </svg>
-      <span className="text-sm font-semibold tabular-nums">{value}%</span>
-    </div>
-  );
-}
-
-function Row({ icon: Icon, text, sub }: { icon: LucideIcon; text: string; sub: string }) {
-  return (
+const DeployMini = () => (
+  <div className={card}>
+    <CardTitle title="Linked deployment" />
     <div className="mt-2 flex items-center gap-2">
-      <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-accent-soft text-accent-ink">
-        <Icon className="h-3.5 w-3.5" />
+      <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-surface-2 text-ink-muted">
+        <Rocket className="h-3.5 w-3.5" />
       </span>
       <div className="min-w-0">
-        <p className="truncate text-[11px] font-medium leading-tight">{text}</p>
-        <p className="text-[9px] text-ink-subtle">{sub}</p>
+        <p className="truncate text-[11px] font-medium">
+          Payment Service <span className="font-mono text-[10px] text-ink-muted">v2.4.0</span>
+        </p>
+        <p className="text-[9px] text-ink-subtle">production · 15 min before the incident</p>
+      </div>
+    </div>
+  </div>
+);
+
+const CausesMini = () => (
+  <div className={card}>
+    <p className="flex items-center gap-1 text-[12px] font-semibold">
+      <Sparkles className="h-3 w-3 text-accent-ink" /> AI analysis
+    </p>
+    <p className="mt-0.5 text-[10px] text-ink-subtle">Possible causes</p>
+    {(
+      [
+        ['Connection pool exhaustion', 82],
+        ['Regression from deployment v2.4.0', 74],
+      ] as const
+    ).map(([cause, pct], i) => (
+      <div key={cause} className="mt-2">
+        <div className="flex justify-between gap-2 text-[10px]">
+          <span className="truncate">{cause}</span>
+          <span className="tabular-nums text-ink-subtle">{pct}%</span>
+        </div>
+        <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-skeleton">
+          <motion.div
+            initial={{ width: 0 }}
+            animate={{ width: `${pct}%` }}
+            transition={{ delay: 0.5 + i * 0.15, duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
+            className="h-full rounded-full bg-accent-600"
+          />
+        </div>
+      </div>
+    ))}
+  </div>
+);
+
+const EvidenceMini = () => (
+  <div className={card}>
+    <CardTitle title="Evidence" sub="Logs and metrics" />
+    <div className="mt-2 rounded-md bg-surface-2 p-2 font-mono text-[9px] leading-snug">
+      <span className="mr-1 rounded bg-down-bg px-1 py-px text-[8px] font-semibold text-down-fg">
+        ERROR
+      </span>
+      Connection pool exhausted: active=50 max=50 waiting=60
+    </div>
+    <p className="mt-2 text-[10px] text-ink-muted">
+      Error rate <b className="text-ink">34.0%</b> · Latency <b className="text-ink">5200 ms</b>
+    </p>
+  </div>
+);
+
+const StepsMini = () => (
+  <div className={card}>
+    <CardTitle title="Suggested next steps" />
+    <ol className="mt-2 list-decimal space-y-1 pl-4 text-[10px] leading-snug">
+      <li>Review what v2.4.0 changed</li>
+      <li>Roll back v2.4.0 (needs approval)</li>
+      <li>Check active connections</li>
+    </ol>
+  </div>
+);
+
+const LifecycleMini = () => {
+  const current = incidentStatuses.indexOf('INVESTIGATING');
+  return (
+    <div className={card}>
+      <CardTitle title="Lifecycle" sub="Investigating" />
+      <ol className="mt-3 flex items-center" aria-hidden="true">
+        {incidentStatuses.map((st, i) => (
+          <li key={st} className="flex flex-1 items-center last:flex-none">
+            <span
+              className={`grid h-4 w-4 place-items-center rounded-full ${
+                i < current
+                  ? 'bg-resolved-bg text-resolved-fg'
+                  : i === current
+                    ? 'bg-accent-600 text-white ring-2 ring-accent-600/30'
+                    : 'bg-skeleton text-ink-subtle'
+              }`}
+            >
+              {i < current ? (
+                <Check className="h-2.5 w-2.5" strokeWidth={3} />
+              ) : (
+                <span className="h-1 w-1 rounded-full bg-current" />
+              )}
+            </span>
+            {i < incidentStatuses.length - 1 && (
+              <span
+                className={`h-px flex-1 ${i < current ? 'bg-resolved-fg/50' : 'bg-line-strong'}`}
+              />
+            )}
+          </li>
+        ))}
+      </ol>
+      <div className="mt-1.5 flex justify-between text-[8px] text-ink-subtle">
+        <span>Open</span>
+        <span>Closed</span>
       </div>
     </div>
   );
-}
+};
+
+const TimelineMini = () => (
+  <div className={card}>
+    <CardTitle title="Timeline" />
+    <ul className="mt-2 space-y-2">
+      {(
+        [
+          [Siren, 'Alertmanager', 'opened the incident', '3 min ago'],
+          [Rocket, 'Adam', 'linked deployment v2.4.0', '2 min ago'],
+          [Sparkles, 'Erin', 'finished an AI analysis', '1 min ago'],
+        ] as const
+      ).map(([Icon, who, what, when]) => (
+        <li key={what} className="flex items-start gap-2">
+          <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full border border-line-strong text-accent-ink">
+            <Icon className="h-2.5 w-2.5" />
+          </span>
+          <p className="min-w-0 text-[10px] leading-snug">
+            <b className="font-medium">{who}</b> <span className="text-ink-muted">{what}</span>
+            <span className="block text-[9px] text-ink-subtle">{when}</span>
+          </p>
+        </li>
+      ))}
+    </ul>
+  </div>
+);
+
+const CommentMini = () => (
+  <div className={card}>
+    <CardTitle title="Comments" />
+    <div className="mt-2 flex items-start gap-2">
+      <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-accent-600 text-[8px] font-semibold text-white">
+        AA
+      </span>
+      <p className="rounded-lg bg-surface-2 px-2 py-1.5 text-[10px] leading-snug">
+        Rolling back v2.4.0 now, will confirm the error rate drops.
+      </p>
+    </div>
+  </div>
+);
 
 /* ---------- the three slides ---------- */
 
@@ -126,122 +244,41 @@ interface Slide {
 
 const slides: Slide[] = [
   {
-    heading: 'Automate response',
+    heading: 'Zero triage',
     icons: [Siren, Webhook, Rocket, Server, GitCommitHorizontal, BellRing],
     title: 'Alerts become incidents, automatically',
     text: 'Connect Alertmanager, Grafana or any webhook. OpsFlow opens the incident and links the deploy that caused it.',
     widgets: (
       <>
-        <div className={card}>
-          <CardTitle title="Alerts by source" sub="Last 24 hours" />
-          <Bars
-            items={[
-              { label: 'Prom', value: 14 },
-              { label: 'Grafana', value: 9 },
-              { label: 'Hook', value: 5 },
-            ]}
-          />
-        </div>
-        <div className={card}>
-          <CardTitle title="Error rate" sub="payment-service" />
-          <p className="mt-1 text-xl font-semibold tabular-nums">34.0%</p>
-          <Spark />
-        </div>
-        <div className={card}>
-          <CardTitle title="Linked deployment" />
-          <Row icon={Rocket} text="v2.4.0 · production" sub="15 min before the incident" />
-        </div>
+        <IncidentMini />
+        <HealthMini />
+        <DeployMini />
       </>
     ),
   },
   {
-    heading: 'Find the cause',
+    heading: 'Causes, ranked',
     icons: [Sparkles, FileSearch, BookOpen, Activity, ShieldCheck, Clock],
     title: 'AI that reads the evidence',
     text: 'Logs, metrics and your own runbooks, searched for you, with likely causes and how confident the answer is.',
     widgets: (
       <>
-        <div className={card}>
-          <CardTitle title="Possible causes" sub="Ranked by confidence" />
-          {[
-            ['Connection pool', 82],
-            ['Regression v2.4.0', 74],
-          ].map(([l, v], i) => (
-            <div key={l} className="mt-2.5">
-              <div className="flex justify-between text-[10px]">
-                <span>{l}</span>
-                <span className="tabular-nums text-ink-subtle">{v}%</span>
-              </div>
-              <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-skeleton">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${v}%` }}
-                  transition={{ delay: 0.5 + i * 0.15, duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
-                  className="h-full rounded-full bg-accent-600"
-                />
-              </div>
-            </div>
-          ))}
-        </div>
-        <div className={card}>
-          <CardTitle title="Overall confidence" />
-          <Donut value={82} />
-        </div>
-        <div className={card}>
-          <CardTitle title="Runbook match" />
-          <Row
-            icon={BookOpen}
-            text="Payment service troubleshooting"
-            sub="Best match from your runbooks"
-          />
-        </div>
+        <CausesMini />
+        <EvidenceMini />
+        <StepsMini />
       </>
     ),
   },
   {
-    heading: 'Resolve together',
+    heading: 'Shared timeline',
     icons: [Users, MessageSquare, UserCheck, CheckCircle2, History, Clock],
-    title: 'One live timeline for the whole team',
+    title: 'Everyone sees the same incident, live',
     text: 'Assign, discuss and resolve together. Every change is recorded in the timeline and the audit trail.',
     widgets: (
       <>
-        <div className={card}>
-          <CardTitle title="Incident lifecycle" sub="Investigating" />
-          <div className="mt-3 flex items-center">
-            {['Open', 'Inv.', 'Mit.', 'Res.', 'Closed'].map((s, i) => (
-              <div key={s} className="flex flex-1 items-center last:flex-none">
-                <span
-                  className={`grid h-4 w-4 place-items-center rounded-full text-[7px] font-semibold ${
-                    i < 1
-                      ? 'bg-accent-600 text-white'
-                      : i === 1
-                        ? 'bg-accent-soft text-accent-ink ring-2 ring-accent-600'
-                        : 'bg-skeleton text-ink-subtle'
-                  }`}
-                >
-                  {i + 1}
-                </span>
-                {i < 4 && (
-                  <span className={`h-px flex-1 ${i < 1 ? 'bg-accent-600' : 'bg-line-strong'}`} />
-                )}
-              </div>
-            ))}
-          </div>
-          <div className="mt-1 flex justify-between text-[8px] text-ink-subtle">
-            <span>Open</span>
-            <span>Closed</span>
-          </div>
-        </div>
-        <div className={card}>
-          <CardTitle title="Avg. resolution" sub="Last 7 days" />
-          <p className="mt-1 text-xl font-semibold tabular-nums">40m</p>
-          <Spark color="#16a34a" />
-        </div>
-        <div className={card}>
-          <CardTitle title="Timeline" />
-          <Row icon={Siren} text="Alertmanager opened it" sub="3 min ago" />
-          <Row icon={MessageSquare} text="Adam: rolling back v2.4.0" sub="1 min ago" />
-        </div>
+        <LifecycleMini />
+        <TimelineMini />
+        <CommentMini />
       </>
     ),
   },
@@ -325,7 +362,7 @@ export function AuthCarousel() {
                   <h2 className="max-w-[46%] text-[clamp(1.9rem,3.3vw,3.6rem)] font-semibold leading-[1.04] tracking-tight">
                     {slide.heading}
                   </h2>
-                  <div className="mt-[clamp(1.5rem,5vh,3.5rem)] flex gap-x-[clamp(0.7rem,1.35vw,1.4rem)] [@media(max-height:760px)]:hidden">
+                  <div className="mt-[clamp(1.5rem,5vh,3.5rem)] flex gap-x-[clamp(0.7rem,1.35vw,1.4rem)] max-xl:[&>*:nth-child(n+5)]:hidden [@media(max-height:760px)]:hidden">
                     {slide.icons.map((Icon, i) => (
                       <motion.span
                         key={i}
@@ -342,9 +379,7 @@ export function AuthCarousel() {
                   </div>
                 </div>
 
-                <div className="absolute right-[-2.75rem] top-3 flex flex-col gap-3">
-                  {slide.widgets}
-                </div>
+                <div className="absolute right-4 top-3 flex flex-col gap-3">{slide.widgets}</div>
               </div>
             </div>
           </div>
