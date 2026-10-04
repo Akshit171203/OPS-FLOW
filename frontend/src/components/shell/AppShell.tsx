@@ -10,7 +10,7 @@ import { useSocketConnected } from '@/lib/socket';
 import { useDismiss } from '@/lib/useDismiss';
 import { CommandPalette } from '../CommandPalette';
 import { Icon } from '../Icon';
-import { LogoMark } from '../LogoMark';
+import { LogoWordmark } from '../Logo';
 import { NotificationBell } from '../NotificationBell';
 import { ThemeToggle } from '../ThemeToggle';
 
@@ -24,12 +24,8 @@ const NAV = [
 
 function Brand() {
   return (
-    <Link
-      href="/"
-      className="flex items-center gap-2.5 px-4 py-5 text-[17px] font-semibold tracking-tight text-ink"
-    >
-      <LogoMark size={32} />
-      OpsFlow
+    <Link href="/" aria-label="OpsFlow home" className="flex items-center px-5 py-5 text-ink">
+      <LogoWordmark height={28} />
     </Link>
   );
 }
@@ -282,8 +278,8 @@ export function AppShell({
           >
             <Icon name="menu" />
           </button>
-          <Link href="/" className="font-semibold tracking-tight lg:hidden">
-            OpsFlow
+          <Link href="/" aria-label="OpsFlow home" className="text-ink lg:hidden">
+            <LogoWordmark height={22} />
           </Link>
 
           <button

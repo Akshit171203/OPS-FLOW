@@ -7,7 +7,7 @@ import { ArrowRight } from 'lucide-react';
 import { motion } from 'motion/react';
 import { api, ApiError } from '@/lib/api';
 import { AuthCarousel } from '@/components/AuthCarousel';
-import { LogoMark } from '@/components/LogoMark';
+import { LogoWordmark } from '@/components/Logo';
 import { Button, ErrorText, inputClass, linkClass } from '@/components/ui';
 
 type Field = { name: string; label: string; type?: string; autoComplete?: string; hint?: string };
@@ -62,8 +62,8 @@ export function AuthForm({
           className="mx-auto w-full max-w-[26rem]"
         >
           <div>
-            <LogoMark size={48} />
-            <h1 className="mt-6 text-[1.75rem] font-semibold tracking-tight">{title}</h1>
+            <LogoWordmark height={40} className="text-ink" />
+            <h1 className="mt-8 text-[1.75rem] font-semibold tracking-tight">{title}</h1>
             <p className="mt-1.5 text-sm text-ink-muted">{subtitle}</p>
           </div>
 
