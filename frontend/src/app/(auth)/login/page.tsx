@@ -7,7 +7,7 @@ export default function LoginPage() {
   return (
     <AuthForm
       title="Welcome back"
-      subtitle="Please enter your details to sign in."
+      subtitle="Please enter your details to sign in to OpsFlow."
       endpoint="/api/auth/login"
       submitLabel="Sign in"
       alt={{ prefix: 'New to OpsFlow?', href: '/register', text: 'Create an organization' }}

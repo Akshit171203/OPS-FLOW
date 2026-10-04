@@ -53,7 +53,7 @@ export function AuthForm({
       <AuthCarousel />
 
       {/* The form side stays light in either theme, like the rest of the sign-in screen's contrast */}
-      <main className="theme-light flex min-h-screen flex-col justify-center bg-surface px-5 py-10 text-ink sm:px-10">
+      <main className="theme-light auth-blue flex min-h-screen flex-col justify-center bg-surface px-5 py-10 text-ink sm:px-10">
         <motion.div
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
@@ -63,7 +63,7 @@ export function AuthForm({
           <div className="flex flex-col items-center text-center">
             <span
               aria-hidden="true"
-              className="grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-accent-600 to-[#8b5cf6] shadow-[0_12px_32px_-10px_rgb(88_80_236/0.7)]"
+              className="grid h-14 w-14 place-items-center rounded-2xl bg-accent-600 shadow-[0_12px_32px_-10px_rgb(47_91_234/0.7)]"
             >
               <Activity className="h-6 w-6 text-white" strokeWidth={2.4} />
             </span>

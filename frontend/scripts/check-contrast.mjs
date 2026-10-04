@@ -52,5 +52,22 @@ for (const [name, tokens] of Object.entries(themes)) {
     console.log(`${ok ? 'ok  ' : 'FAIL'} ${r.ratio.toFixed(2).padStart(5)}  ${r.fg} on ${r.bg}`);
   }
 }
+// the blue scope used by the sign-in screen: white on its buttons, its ink colour on white and on its soft tint
+{
+  const blue = { ...light, ...parse(block('.auth-blue {')) };
+  for (const [fg, bg] of [
+    ['white', 'accent-600'],
+    ['white', 'accent-700'],
+    ['accent-ink', 'surface'],
+    ['accent-ink', 'accent-soft'],
+  ]) {
+    const r = ratio(fg === 'white' ? '#ffffff' : blue[fg], blue[bg]);
+    total += 1;
+    if (r < 4.5) failed += 1;
+    console.log(
+      `${r >= 4.5 ? 'ok  ' : 'FAIL'} ${r.toFixed(2).padStart(5)}  ${fg} on ${bg} (auth-blue)`,
+    );
+  }
+}
 console.log(failed ? `\n${failed} pair(s) below 4.5:1` : `\nall ${total} pairs meet WCAG AA`);
 process.exit(failed ? 1 : 0);

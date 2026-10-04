@@ -230,6 +230,14 @@
   --color-dot-idle: #94a3b8;
 }
 
+/* Blue brand scope for the sign-in screen: re-points the accent tokens, nothing else. */
+.auth-blue {
+  --color-accent-600: #2f5bea;
+  --color-accent-700: #2549c9;
+  --color-accent-soft: #e8eeff;
+  --color-accent-ink: #1f3fb8;
+}
+
 @layer base {
   html {
     background: var(--color-canvas);
