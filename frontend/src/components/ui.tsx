@@ -1,7 +1,7 @@
 import type { IncidentStatus, Priority, ServiceStatus, Severity } from '@opsflow/shared';
 
 const pill =
-  'inline-flex items-center whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium';
+  'inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-current/15';
 
 // Class names are written out in full so Tailwind can see them; colours come from the design tokens.
 const severityStyle: Record<Severity, string> = {
@@ -24,17 +24,36 @@ const healthStyle: Record<ServiceStatus, string> = {
   UNKNOWN: 'bg-unknown-bg text-unknown-fg',
 };
 
+/** A small filled dot in the badge's text colour. Decorative: the label next to it carries the meaning. */
+const Dot = ({ pulse }: { pulse?: boolean }) => (
+  <span aria-hidden="true" className="relative inline-flex h-1.5 w-1.5">
+    {pulse && (
+      <span className="absolute inset-0 rounded-full bg-current opacity-60 motion-safe:animate-ping-slow" />
+    )}
+    <span className="relative h-1.5 w-1.5 rounded-full bg-current" />
+  </span>
+);
+
 export const SeverityBadge = ({ value }: { value: Severity }) => (
-  <span className={`${pill} ${severityStyle[value]}`}>{value}</span>
+  <span className={`${pill} ${severityStyle[value]}`}>
+    <Dot />
+    {value}
+  </span>
 );
 export const StatusBadge = ({ value }: { value: IncidentStatus }) => (
-  <span className={`${pill} ${statusStyle[value]}`}>{value}</span>
+  <span className={`${pill} ${statusStyle[value]}`}>
+    <Dot pulse={value === 'OPEN' || value === 'INVESTIGATING'} />
+    {value}
+  </span>
 );
 export const ServiceStatusBadge = ({ value }: { value: ServiceStatus }) => (
-  <span className={`${pill} ${healthStyle[value]}`}>{value}</span>
+  <span className={`${pill} ${healthStyle[value]}`}>
+    <Dot pulse={value === 'DOWN'} />
+    {value}
+  </span>
 );
 export const PriorityBadge = ({ value }: { value: Priority }) => (
-  <span className={`${pill} border border-line bg-surface text-ink-muted`}>{value}</span>
+  <span className={`${pill} bg-surface-2 text-ink-muted`}>{value}</span>
 );
 
 export const Pill = ({
@@ -46,13 +65,14 @@ export const Pill = ({
 }) => <span className={`${pill} ${className}`}>{children}</span>;
 
 const buttonBase =
-  'inline-flex items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60';
-export const buttonClass = `${buttonBase} bg-accent-600 text-white hover:bg-accent-700`;
-export const secondaryButtonClass = `${buttonBase} border border-slate-300 bg-surface text-ink hover:bg-slate-50`;
-export const linkClass = 'text-accent-700 underline underline-offset-2 hover:text-accent-800';
+  'inline-flex items-center justify-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium transition duration-150 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-60';
+export const buttonClass = `${buttonBase} bg-gradient-to-b from-accent-600 to-accent-700 text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.2),0_6px_16px_-8px_rgb(88_80_236/0.8)] hover:brightness-110`;
+export const secondaryButtonClass = `${buttonBase} border border-line-strong bg-surface text-ink shadow-sm hover:bg-surface-2`;
+export const linkClass =
+  'text-accent-ink underline decoration-accent-ink/30 underline-offset-2 transition hover:decoration-accent-ink';
 
 export const inputClass =
-  'w-full rounded-md border border-slate-300 bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-subtle disabled:bg-slate-100';
+  'w-full rounded-lg border border-line-strong bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-subtle transition focus:border-accent-600 focus:outline-none focus:ring-2 focus:ring-accent-600/25 disabled:bg-surface-2';
 
 export const ErrorText = ({ children }: { children?: React.ReactNode }) =>
   children ? (

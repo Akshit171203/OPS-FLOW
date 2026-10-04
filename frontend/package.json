@@ -11,9 +11,16 @@
   },
   "dependencies": {
     "@opsflow/shared": "workspace:*",
+    "clsx": "^2.1.1",
+    "cmdk": "^1.1.1",
+    "geist": "^1.7.2",
+    "lucide-react": "^1.52.0",
+    "motion": "^14.0.0",
     "next": "^15.0.0",
+    "next-themes": "^0.4.6",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "recharts": "^3.10.1",
     "socket.io-client": "^4.8.4"
   },
   "devDependencies": {

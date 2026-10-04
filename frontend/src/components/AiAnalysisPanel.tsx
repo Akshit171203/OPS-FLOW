@@ -7,6 +7,7 @@ import type {
   AnalysisRealtimeData,
   AnalysisStep,
 } from '@opsflow/shared';
+import { Sparkles } from 'lucide-react';
 import { api, ApiError } from '@/lib/api';
 import { useReconnect, useSocketEvent } from '@/lib/socket';
 import { useToast } from './toast';
@@ -30,9 +31,12 @@ function ConfidenceBar({ value, label }: { value: number; label: string }) {
         aria-valuenow={pct}
         aria-valuemin={0}
         aria-valuemax={100}
-        className="h-2 w-28 overflow-hidden rounded bg-slate-200"
+        className="h-1.5 w-28 overflow-hidden rounded-full bg-skeleton"
       >
-        <div className="h-full bg-accent-600" style={{ width: `${pct}%` }} />
+        <div
+          className="h-full rounded-full bg-gradient-to-r from-accent-600 to-[#8b5cf6]"
+          style={{ width: `${pct}%` }}
+        />
       </div>
       <span className="w-10 text-xs tabular-nums text-ink-muted">{pct}%</span>
     </div>
@@ -57,7 +61,7 @@ function Progress({
         return (
           <li
             key={s.key}
-            className={`flex items-center gap-2 ${done ? 'text-resolved-fg' : active ? 'font-medium text-accent-700' : 'text-ink-subtle'}`}
+            className={`flex items-center gap-2 ${done ? 'text-resolved-fg' : active ? 'font-medium text-accent-ink' : 'text-ink-subtle'}`}
           >
             <span aria-hidden="true" className="inline-block w-4 text-center">
               {done ? '✓' : active ? '●' : '○'}
@@ -90,7 +94,7 @@ function ResultCard({ a }: { a: AiAnalysisDto }) {
         <h3 className="mb-2 text-sm font-semibold">Possible causes</h3>
         <ul className="space-y-3">
           {r.possibleCauses.map((c, i) => (
-            <li key={i} className="rounded border border-line p-3">
+            <li key={i} className="rounded-xl border border-line bg-surface-2/40 p-3.5">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="text-sm font-medium">{c.cause}</p>
                 <ConfidenceBar value={c.confidence} label={`Confidence in cause ${i + 1}`} />
@@ -204,10 +208,20 @@ export function AiAnalysisPanel({ incidentId, canRun }: { incidentId: string; ca
   return (
     <section
       aria-labelledby="ai-heading"
-      className="rounded-lg border border-line bg-surface p-4 shadow-sm"
+      className="card-surface relative overflow-hidden rounded-2xl p-5"
     >
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <h2 id="ai-heading" className="text-base font-semibold">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-accent-600/15 blur-3xl"
+      />
+      <div className="relative mb-4 flex items-center justify-between gap-3">
+        <h2 id="ai-heading" className="relative flex items-center gap-2 text-base font-semibold">
+          <span
+            aria-hidden="true"
+            className="grid h-7 w-7 place-items-center rounded-lg bg-gradient-to-br from-accent-600 to-[#8b5cf6] text-white shadow-[0_0_18px_-4px_rgb(99_91_255/0.8)]"
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+          </span>
           AI analysis
         </h2>
         {canRun && latest?.status !== 'FAILED' && (

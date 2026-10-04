@@ -4,8 +4,13 @@ import { buttonClass } from '@/components/ui';
 export default function NotFound() {
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center px-4 text-center">
-      <p className="text-sm font-medium text-accent-700">404</p>
-      <h1 className="mt-1 text-2xl font-semibold tracking-tight">Page not found</h1>
+      <p
+        aria-hidden="true"
+        className="bg-gradient-to-br from-accent-600 to-[#8b5cf6] bg-clip-text text-8xl font-semibold tracking-tighter text-transparent"
+      >
+        404
+      </p>
+      <h1 className="mt-2 text-2xl font-semibold tracking-tight">Page not found</h1>
       <p className="mt-2 text-sm text-ink-muted">
         The page you are looking for does not exist or has moved.
       </p>

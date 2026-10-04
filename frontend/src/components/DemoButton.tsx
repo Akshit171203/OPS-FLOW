@@ -36,8 +36,8 @@ export function DemoButton() {
   }
 
   return (
-    <div className="mt-5 rounded-lg border border-accent-200 bg-accent-50 p-4 text-center">
-      <p className="text-sm text-accent-800">Just looking? No account needed.</p>
+    <div className="mt-6 rounded-xl border border-accent-600/30 bg-accent-soft p-4 text-center">
+      <p className="text-sm text-accent-ink">Just looking? No account needed.</p>
       <Button
         className="mt-3 w-full"
         onClick={enter}
@@ -46,7 +46,7 @@ export function DemoButton() {
       >
         Try the live demo
       </Button>
-      <p className="mt-2 text-xs text-accent-800">
+      <p className="mt-2 text-xs text-accent-ink">
         Shared sample data. Press “Simulate payment outage” to watch an incident unfold.
       </p>
       <ErrorText>{error}</ErrorText>

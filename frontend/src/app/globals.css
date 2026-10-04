@@ -1,30 +1,35 @@
 @import 'tailwindcss';
 
+/* Dark mode is the `dark` class on <html>, set by next-themes. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /*
  * Design tokens. Everything visual comes from these names (bg-canvas, text-ink-muted, bg-sev1-bg,
- * bg-accent-600 ...), so a colour is defined once and checked once: `pnpm --filter @opsflow/frontend
- * check:contrast` fails if any text/background pair drops below WCAG AA (4.5:1).
+ * bg-accent-600 ...), so a colour is defined once per theme and checked once: `pnpm --filter
+ * @opsflow/frontend check:contrast` fails if any text/background pair, in either theme, drops below
+ * WCAG AA (4.5:1). The light values live in @theme; the `.dark` block below overrides the same names.
  */
 @theme {
   --font-sans:
-    ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+    var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
-  /* one accent */
-  --color-accent-50: #eef2ff;
-  --color-accent-100: #e0e7ff;
-  --color-accent-200: #c7d2fe;
-  --color-accent-600: #4f46e5;
-  --color-accent-700: #4338ca;
-  --color-accent-800: #3730a3;
+  /* one accent: indigo-violet. 600/700 are the button fill and its hover, the same in both themes */
+  --color-accent-600: #5850ec;
+  --color-accent-700: #4a43d6;
+  --color-accent-soft: #eef0ff;
+  --color-accent-ink: #4338ca;
 
-  /* one neutral palette */
-  --color-canvas: #f8fafc;
+  /* neutrals */
+  --color-canvas: #f6f7f9;
   --color-surface: #ffffff;
-  --color-line: #e2e8f0;
-  --color-ink: #0f172a;
-  --color-ink-muted: #475569;
-  --color-ink-subtle: #64748b;
+  --color-surface-2: #f1f3f7;
+  --color-skeleton: #e4e7ee;
+  --color-line: #e3e6ec;
+  --color-line-strong: #cdd2dc;
+  --color-ink: #0b0d12;
+  --color-ink-muted: #474e5f;
+  --color-ink-subtle: #5d6475;
 
   /* severity SEV1 (worst) to SEV4 */
   --color-sev1-bg: #fee2e2;
@@ -33,7 +38,7 @@
   --color-sev2-fg: #9a3412;
   --color-sev3-bg: #fef9c3;
   --color-sev3-fg: #854d0e;
-  --color-sev4-bg: #f1f5f9;
+  --color-sev4-bg: #eef0f4;
   --color-sev4-fg: #334155;
 
   /* incident status */
@@ -45,7 +50,7 @@
   --color-mitigating-fg: #1e40af;
   --color-resolved-bg: #dcfce7;
   --color-resolved-fg: #166534;
-  --color-closed-bg: #f1f5f9;
+  --color-closed-bg: #eef0f4;
   --color-closed-fg: #475569;
 
   /* service health */
@@ -55,7 +60,7 @@
   --color-degraded-fg: #92400e;
   --color-down-bg: #fee2e2;
   --color-down-fg: #991b1b;
-  --color-unknown-bg: #f1f5f9;
+  --color-unknown-bg: #eef0f4;
   --color-unknown-fg: #475569;
 
   /* feedback */
@@ -68,24 +73,184 @@
   --color-notice-bg: #fffbeb;
   --color-notice-fg: #92400e;
   --color-notice-line: #fde68a;
+
+  /* solid dots used next to status text (decorative: the text carries the meaning) */
+  --color-dot-ok: #16a34a;
+  --color-dot-warn: #d97706;
+  --color-dot-bad: #dc2626;
+  --color-dot-idle: #94a3b8;
+
+  --animate-shimmer: shimmer 1.6s linear infinite;
+  --animate-ping-slow: ping-slow 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+  --animate-drift: drift 18s ease-in-out infinite alternate;
+  --animate-float: float 7s ease-in-out infinite;
+
+  @keyframes shimmer {
+    to {
+      background-position: -200% 0;
+    }
+  }
+  @keyframes ping-slow {
+    75%,
+    100% {
+      transform: scale(2.4);
+      opacity: 0;
+    }
+  }
+  @keyframes drift {
+    from {
+      transform: translate3d(-4%, -2%, 0) scale(1);
+    }
+    to {
+      transform: translate3d(4%, 3%, 0) scale(1.12);
+    }
+  }
+  @keyframes float {
+    50% {
+      transform: translateY(-8px);
+    }
+  }
+}
+
+.dark {
+  color-scheme: dark;
+
+  --color-accent-soft: #1d1c45;
+  --color-accent-ink: #b4b9ff;
+
+  --color-canvas: #07080b;
+  --color-surface: #0e1015;
+  --color-surface-2: #161923;
+  --color-skeleton: #1b1f2b;
+  --color-line: #20242f;
+  --color-line-strong: #323849;
+  --color-ink: #eef0f5;
+  --color-ink-muted: #a6acbb;
+  --color-ink-subtle: #8f95a6;
+
+  --color-sev1-bg: #3b1219;
+  --color-sev1-fg: #fda4af;
+  --color-sev2-bg: #3a1f0d;
+  --color-sev2-fg: #fdba74;
+  --color-sev3-bg: #38300c;
+  --color-sev3-fg: #fde047;
+  --color-sev4-bg: #1c2029;
+  --color-sev4-fg: #b6bcc9;
+
+  --color-open-bg: #1e2048;
+  --color-open-fg: #b4b9ff;
+  --color-investigating-bg: #3a2a0a;
+  --color-investigating-fg: #fcd34d;
+  --color-mitigating-bg: #0f2a47;
+  --color-mitigating-fg: #93c5fd;
+  --color-resolved-bg: #0e2e1c;
+  --color-resolved-fg: #86efac;
+  --color-closed-bg: #1c2029;
+  --color-closed-fg: #b6bcc9;
+
+  --color-healthy-bg: #0e2e1c;
+  --color-healthy-fg: #86efac;
+  --color-degraded-bg: #3a2a0a;
+  --color-degraded-fg: #fcd34d;
+  --color-down-bg: #3b1219;
+  --color-down-fg: #fda4af;
+  --color-unknown-bg: #1c2029;
+  --color-unknown-fg: #b6bcc9;
+
+  --color-danger-bg: #2a1014;
+  --color-danger-fg: #fda4af;
+  --color-danger-line: #5c1f29;
+  --color-success-bg: #0d2418;
+  --color-success-fg: #86efac;
+  --color-success-line: #1e5233;
+  --color-notice-bg: #2a2108;
+  --color-notice-fg: #fcd34d;
+  --color-notice-line: #5a4510;
+
+  --color-dot-ok: #34d399;
+  --color-dot-warn: #fbbf24;
+  --color-dot-bad: #fb7185;
+  --color-dot-idle: #64748b;
 }
 
 @layer base {
+  html {
+    background: var(--color-canvas);
+  }
   body {
     background: var(--color-canvas);
     color: var(--color-ink);
     font-family: var(--font-sans);
+    font-feature-settings: 'cv11', 'ss01';
     -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
   }
   /* Visible keyboard focus everywhere, never removed */
   :focus-visible {
     outline: 2px solid var(--color-accent-600);
     outline-offset: 2px;
-    border-radius: 4px;
+    border-radius: 6px;
+  }
+  .dark :focus-visible {
+    outline-color: #8b93ff;
   }
   main:focus {
     outline: none;
   }
+  ::selection {
+    background: color-mix(in srgb, var(--color-accent-600) 35%, transparent);
+  }
+}
+
+/* Soft aurora behind the app: two blurred colour pools and a faint grid. Purely decorative. */
+.app-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  background:
+    radial-gradient(60rem 32rem at 85% -10%, rgb(88 80 236 / 0.1), transparent 60%),
+    radial-gradient(50rem 28rem at -10% 110%, rgb(14 165 233 / 0.06), transparent 60%);
+}
+.dark .app-backdrop {
+  background:
+    radial-gradient(60rem 32rem at 85% -10%, rgb(99 91 255 / 0.16), transparent 60%),
+    radial-gradient(50rem 28rem at -10% 110%, rgb(14 165 233 / 0.09), transparent 60%);
+}
+.app-backdrop::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(to right, rgb(120 130 160 / 0.06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(120 130 160 / 0.06) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: radial-gradient(ellipse at 50% 0%, #000 0%, transparent 70%);
+}
+
+/* Cards: a hairline border plus a faint top highlight, which is what makes dark surfaces feel lifted. */
+.card-surface {
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  box-shadow:
+    0 1px 2px rgb(15 23 42 / 0.04),
+    inset 0 1px 0 rgb(255 255 255 / 0.5);
+}
+.dark .card-surface {
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 0.4),
+    inset 0 1px 0 rgb(255 255 255 / 0.035);
+}
+
+.skeleton-shimmer {
+  background-image: linear-gradient(
+    100deg,
+    transparent 30%,
+    color-mix(in srgb, var(--color-ink) 7%, transparent) 50%,
+    transparent 70%
+  );
+  background-size: 200% 100%;
 }
 
 .skip-link {

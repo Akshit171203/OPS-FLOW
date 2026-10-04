@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { roleRank, type Paginated, type ProjectDto, type ServiceHealthDto } from '@opsflow/shared';
-import { Button, Field, inputClass, linkClass, ServiceStatusBadge } from '@/components/ui';
+import { Button, Field, inputClass, ServiceStatusBadge } from '@/components/ui';
 import {
   Card,
   EmptyState,
@@ -13,6 +13,7 @@ import {
   SectionHeading,
   Skeleton,
 } from '@/components/feedback';
+import { StatusDot } from '@/components/StatusDot';
 import { useToast } from '@/components/toast';
 import { api } from '@/lib/api';
 import { percent, slugify, timeAgo } from '@/lib/format';
@@ -172,9 +173,9 @@ export default function ServicesPage() {
                     No services in this project yet.
                   </Card>
                 ) : (
-                  <Card className="overflow-x-auto">
+                  <Card className="overflow-x-auto overflow-y-hidden">
                     <table className="w-full min-w-[34rem] text-left text-sm">
-                      <thead className="border-b border-line text-xs uppercase tracking-wide text-ink-muted">
+                      <thead className="border-b border-line bg-surface-2/50 text-[11px] uppercase tracking-wider text-ink-subtle">
                         <tr>
                           <th scope="col" className="px-4 py-2 font-medium">
                             Service
@@ -195,9 +196,13 @@ export default function ServicesPage() {
                       </thead>
                       <tbody className="divide-y divide-line">
                         {mine.map((s) => (
-                          <tr key={s.id}>
+                          <tr key={s.id} className="transition-colors hover:bg-surface-2/60">
                             <th scope="row" className="px-4 py-3 font-medium">
-                              <Link href={`/services/${s.id}`} className={linkClass}>
+                              <Link
+                                href={`/services/${s.id}`}
+                                className="inline-flex items-center gap-2.5 hover:text-accent-ink"
+                              >
+                                <StatusDot status={s.status} />
                                 {s.name}
                               </Link>
                             </th>

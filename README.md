@@ -8,6 +8,16 @@ Your services connect with an API key and a webhook. A monitoring alert (Alertma
 
 > **Not deployed yet.** The code, Docker images and a Render Blueprint are ready ([docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)); I have not published a live URL. Run it locally in a few commands below.
 
+## Screenshots
+
+![The dashboard in the dark theme: status summary, 7-day incident chart, service health, deployments and activity](docs/images/dashboard.png)
+
+| Incident page | Sign-in | Light theme |
+| --- | --- | --- |
+| ![An incident with its lifecycle, timeline and AI analysis](docs/images/incident-detail.png) | ![Sign-in with a product preview](docs/images/login.png) | ![The dashboard in the light theme](docs/images/dashboard-light.png) |
+
+Dark and light themes follow the system setting, and `Ctrl/Cmd+K` opens a command palette to jump to pages and incidents. The incident above came from **Simulate payment outage** on the seeded demo data; its analysis is from the built-in offline analyzer, which the page labels as such.
+
 ## What it does
 
 - **Incidents with a strict lifecycle** (OPEN → INVESTIGATING → MITIGATED → RESOLVED), a timeline of every change, comments, assignees, and optimistic locking so two people cannot silently overwrite each other.

@@ -31,7 +31,7 @@ export default function AuthenticatedLayout({ children }: { children: React.Reac
         <p className="font-medium text-danger-fg">OpsFlow could not reach the server.</p>
         <button
           onClick={() => window.location.reload()}
-          className="mt-3 rounded-md border border-slate-300 bg-surface px-3 py-2 text-sm font-medium"
+          className="mt-3 rounded-md border border-line-strong bg-surface px-3 py-2 text-sm font-medium"
         >
           Reload
         </button>

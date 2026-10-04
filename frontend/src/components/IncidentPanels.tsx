@@ -135,7 +135,7 @@ export function LogsPanel({
           <select
             value={level}
             onChange={(e) => setLevel(e.target.value as LogLevel | '')}
-            className="rounded-md border border-slate-300 bg-surface px-2 py-1.5 text-sm"
+            className="rounded-md border border-line-strong bg-surface px-2 py-1.5 text-sm"
           >
             <option value="">All</option>
             {logLevels.map((l) => (
@@ -276,7 +276,7 @@ export function DeploymentsPanel({
                   <p className="flex flex-wrap items-center gap-1.5 font-medium">
                     <span className="font-mono">{d.version}</span>
                     <Pill className={deployStyle[d.status]}>{d.status}</Pill>
-                    {d.linked && <Pill className="bg-accent-100 text-accent-800">Linked</Pill>}
+                    {d.linked && <Pill className="bg-accent-soft text-accent-ink">Linked</Pill>}
                   </p>
                   <p className="mt-0.5 truncate text-xs text-ink-subtle">
                     {d.commitSha.slice(0, 7)} · {d.environment} · {d.deployedBy} ·{' '}

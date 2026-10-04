@@ -2,6 +2,7 @@
 
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import { Activity, ArrowLeft, Gauge, Timer } from 'lucide-react';
 import {
   roleRank,
   serviceStatuses,
@@ -13,7 +14,7 @@ import {
   type ServiceDto,
   type ServiceStatus,
 } from '@opsflow/shared';
-import { linkClass, ServiceStatusBadge, SeverityBadge, StatusBadge } from '@/components/ui';
+import { ServiceStatusBadge, SeverityBadge, StatusBadge } from '@/components/ui';
 import {
   Card,
   EmptyState,
@@ -22,8 +23,10 @@ import {
   PageHeader,
   SectionHeading,
   Skeleton,
+  StatCard,
 } from '@/components/feedback';
-import { Sparkline } from '@/components/Sparkline';
+import { AreaTrend } from '@/components/charts';
+import { StatusDot } from '@/components/StatusDot';
 import { useToast } from '@/components/toast';
 import { api } from '@/lib/api';
 import { formatDate, percent, timeAgo } from '@/lib/format';
@@ -31,14 +34,8 @@ import { useMe } from '@/lib/me-context';
 import { useFetch } from '@/lib/useFetch';
 import { usePageTitle } from '@/lib/usePageTitle';
 
-function Tile({ label, value }: { label: string; value: string }) {
-  return (
-    <Card className="p-4">
-      <p className="text-sm text-ink-muted">{label}</p>
-      <p className="mt-1 text-2xl font-semibold tabular-nums">{value}</p>
-    </Card>
-  );
-}
+const hourLabel = (iso: string) =>
+  new Date(iso).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
 
 export default function ServiceDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -86,14 +83,23 @@ export default function ServiceDetailPage() {
 
   return (
     <>
-      <p className="mb-2 text-sm">
-        <Link href="/services" className={linkClass}>
-          ← Services
+      <p className="mb-3 text-sm">
+        <Link
+          href="/services"
+          className="inline-flex items-center gap-1.5 text-ink-muted transition-colors hover:text-ink"
+        >
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+          Services
         </Link>
       </p>
       <PageHeader
         title={s.name}
-        description={`${s.projectName} · ${s.slug}`}
+        description={
+          <span className="inline-flex items-center gap-2">
+            <StatusDot status={s.status} />
+            {s.projectName} · <span className="font-mono text-xs">{s.slug}</span>
+          </span>
+        }
         actions={
           isAdmin ? (
             <label className="flex items-center gap-2 text-sm">
@@ -101,7 +107,7 @@ export default function ServiceDetailPage() {
               <select
                 value={s.status}
                 onChange={(e) => setStatus(e.target.value as ServiceStatus)}
-                className="rounded-md border border-slate-300 bg-surface px-2 py-1.5 text-sm"
+                className="rounded-lg border border-line-strong bg-surface px-2.5 py-1.5 text-sm transition focus:border-accent-600 focus:outline-none focus:ring-2 focus:ring-accent-600/25"
               >
                 {serviceStatuses.map((st) => (
                   <option key={st}>{st}</option>
@@ -115,9 +121,23 @@ export default function ServiceDetailPage() {
       />
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <Tile label="Error rate" value={m ? percent(m.errorRate) : '—'} />
-        <Tile label="Latency" value={m ? `${m.latencyMs} ms` : '—'} />
-        <Tile label="Traffic" value={m ? `${m.requestsPerMin}/min` : '—'} />
+        <StatCard
+          label="Error rate"
+          value={m ? percent(m.errorRate) : '—'}
+          icon={<Activity className="h-4 w-4" />}
+          tone={m && m.errorRate > 0.05 ? 'danger' : 'default'}
+        />
+        <StatCard
+          label="Latency"
+          value={m ? `${m.latencyMs} ms` : '—'}
+          icon={<Timer className="h-4 w-4" />}
+          tone={m && m.latencyMs > 1000 ? 'warning' : 'default'}
+        />
+        <StatCard
+          label="Traffic"
+          value={m ? `${m.requestsPerMin}/min` : '—'}
+          icon={<Gauge className="h-4 w-4" />}
+        />
       </div>
       <p className="mt-2 text-xs text-ink-subtle">
         {m
@@ -134,21 +154,35 @@ export default function ServiceDetailPage() {
         ) : (
           <div className="grid gap-4 sm:grid-cols-2">
             <Card className="p-4">
-              <p className="mb-2 text-sm font-medium">Error rate</p>
-              <Sparkline
-                label="Error rate over 24 hours"
-                points={pts.map((p) => ({ t: Date.parse(p.capturedAt), v: p.errorRate }))}
-                format={percent}
-                stroke="var(--color-sev1-fg)"
-              />
+              <p className="mb-3 text-sm font-medium">Error rate</p>
+              {pts.length < 2 ? (
+                <p className="text-sm text-ink-subtle">Not enough data to draw this yet.</p>
+              ) : (
+                <AreaTrend
+                  id="error-rate"
+                  data={pts.map((p) => ({
+                    label: hourLabel(p.capturedAt),
+                    value: p.errorRate * 100,
+                  }))}
+                  unit="%"
+                  decimals={1}
+                  color="var(--color-sev1-fg)"
+                  summary={`Error rate over the last 24 hours, latest ${percent(pts[pts.length - 1]!.errorRate)}`}
+                />
+              )}
             </Card>
             <Card className="p-4">
-              <p className="mb-2 text-sm font-medium">Latency</p>
-              <Sparkline
-                label="Latency over 24 hours"
-                points={pts.map((p) => ({ t: Date.parse(p.capturedAt), v: p.latencyMs }))}
-                format={(v) => `${Math.round(v)} ms`}
-              />
+              <p className="mb-3 text-sm font-medium">Latency</p>
+              {pts.length < 2 ? (
+                <p className="text-sm text-ink-subtle">Not enough data to draw this yet.</p>
+              ) : (
+                <AreaTrend
+                  id="latency"
+                  data={pts.map((p) => ({ label: hourLabel(p.capturedAt), value: p.latencyMs }))}
+                  unit=" ms"
+                  summary={`Latency over the last 24 hours, latest ${Math.round(pts[pts.length - 1]!.latencyMs)} ms`}
+                />
+              )}
             </Card>
           </div>
         )}
@@ -202,7 +236,7 @@ export default function ServiceDetailPage() {
                   <li key={i.id}>
                     <Link
                       href={`/incidents/${i.id}`}
-                      className="flex items-center justify-between gap-3 p-3 hover:bg-slate-50"
+                      className="flex items-center justify-between gap-3 p-3 hover:bg-surface-2"
                     >
                       <span className="min-w-0 truncate text-sm font-medium">{i.title}</span>
                       <span className="flex shrink-0 gap-1.5">

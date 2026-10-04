@@ -7,7 +7,7 @@ function Inline({ text }: { text: string }) {
     <>
       {parts.map((p, i) =>
         p.startsWith('`') && p.endsWith('`') && p.length > 2 ? (
-          <code key={i} className="rounded bg-slate-100 px-1 py-0.5 font-mono text-[0.85em]">
+          <code key={i} className="rounded bg-surface-2 px-1 py-0.5 font-mono text-[0.85em]">
             {p.slice(1, -1)}
           </code>
         ) : p.startsWith('**') && p.endsWith('**') && p.length > 4 ? (

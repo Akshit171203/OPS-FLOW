@@ -39,7 +39,7 @@ export function NotificationBell() {
         aria-haspopup="true"
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
-        className="relative rounded-md p-2 text-ink-muted hover:bg-slate-100 hover:text-ink"
+        className="relative rounded-md p-2 text-ink-muted hover:bg-surface-2 hover:text-ink"
       >
         <Icon name="bell" />
         {unread > 0 && (
@@ -64,7 +64,7 @@ export function NotificationBell() {
                 <li key={n.id}>
                   <button
                     onClick={() => openNotification(n)}
-                    className="flex w-full items-start gap-2 px-3 py-2.5 text-left hover:bg-slate-50"
+                    className="flex w-full items-start gap-2 px-3 py-2.5 text-left hover:bg-surface-2"
                   >
                     <span
                       aria-hidden="true"

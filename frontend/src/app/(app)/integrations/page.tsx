@@ -301,7 +301,7 @@ export default function IntegrationsPage() {
             ? 'Your new key is filled in below.'
             : 'Replace YOUR_API_KEY with a key from above.'}{' '}
           Services are referred to by their slug, such as{' '}
-          <code className="rounded bg-slate-100 px-1 font-mono text-xs">{slug}</code>.
+          <code className="rounded bg-surface-2 px-1 font-mono text-xs">{slug}</code>.
         </p>
         <div role="tablist" aria-label="Integration type" className="mb-3 flex flex-wrap gap-2">
           {snippets.map((s) => (
@@ -310,7 +310,7 @@ export default function IntegrationsPage() {
               role="tab"
               aria-selected={snippetId === s.id}
               onClick={() => setSnippetId(s.id)}
-              className={`rounded-md px-3 py-1.5 text-sm font-medium ${snippetId === s.id ? 'bg-accent-600 text-white' : 'border border-line bg-surface text-ink-muted hover:bg-slate-50'}`}
+              className={`rounded-md px-3 py-1.5 text-sm font-medium ${snippetId === s.id ? 'bg-accent-600 text-white' : 'border border-line bg-surface text-ink-muted hover:bg-surface-2'}`}
             >
               {s.title.split(' (')[0]}
             </button>
@@ -324,9 +324,9 @@ export default function IntegrationsPage() {
           <CodeBlock code={snippet.code} label={snippet.title} />
           <p className="text-xs text-ink-subtle">
             Want to see it work without wiring anything up? Run{' '}
-            <code className="rounded bg-slate-100 px-1 font-mono">pnpm demo:shop</code>: a small
+            <code className="rounded bg-surface-2 px-1 font-mono">pnpm demo:shop</code>: a small
             website that reports to OpsFlow and that you can crash on purpose. Details are in{' '}
-            <code className="rounded bg-slate-100 px-1 font-mono">docs/INTEGRATIONS.md</code>.
+            <code className="rounded bg-surface-2 px-1 font-mono">docs/INTEGRATIONS.md</code>.
           </p>
         </Card>
       </section>

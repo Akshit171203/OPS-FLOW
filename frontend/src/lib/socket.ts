@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { io, type Socket } from 'socket.io-client';
 import type { RealtimeEventName } from '@opsflow/shared';
 
@@ -56,4 +56,22 @@ export function useIncidentRoom(incidentId: string) {
       s.emit('incident:leave', incidentId);
     };
   }, [incidentId]);
+}
+
+/** Whether the realtime connection is up, for the "Live" indicator. */
+export function useSocketConnected(): boolean {
+  const [connected, setConnected] = useState(false);
+  useEffect(() => {
+    const s = getSocket();
+    const up = () => setConnected(true);
+    const down = () => setConnected(false);
+    setConnected(s.connected);
+    s.on('connect', up);
+    s.on('disconnect', down);
+    return () => {
+      s.off('connect', up);
+      s.off('disconnect', down);
+    };
+  }, []);
+  return connected;
 }

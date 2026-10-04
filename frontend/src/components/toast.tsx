@@ -9,8 +9,9 @@ import {
   useRef,
   useState,
 } from 'react';
+import { AlertCircle, CheckCircle2, Info, X } from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
 import { ApiError } from '@/lib/api';
-import { Icon } from './Icon';
 
 type Kind = 'success' | 'error' | 'info';
 interface ToastItem {
@@ -84,9 +85,11 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         aria-live="polite"
         className="pointer-events-none fixed inset-x-0 bottom-0 z-50 flex flex-col items-center gap-2 p-4 sm:items-end"
       >
-        {items.map((t) => (
-          <ToastView key={t.id} item={t} onDismiss={() => dismiss(t.id)} />
-        ))}
+        <AnimatePresence initial={false}>
+          {items.map((t) => (
+            <ToastView key={t.id} item={t} onDismiss={() => dismiss(t.id)} />
+          ))}
+        </AnimatePresence>
       </div>
     </ToastContext.Provider>
   );
@@ -96,19 +99,32 @@ function ToastView({ item, onDismiss }: { item: ToastItem; onDismiss: () => void
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => ref.current?.focus({ preventScroll: true }), []);
   return (
-    <div
+    <motion.div
       ref={ref}
+      layout
+      initial={{ opacity: 0, y: 16, scale: 0.96 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.96, transition: { duration: 0.15 } }}
+      transition={{ type: 'spring', stiffness: 420, damping: 32 }}
       role={item.kind === 'error' ? 'alert' : 'status'}
-      className={`pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-lg border px-4 py-3 text-sm shadow-lg ${styles[item.kind]}`}
+      className={`pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-xl border px-4 py-3 text-sm shadow-2xl backdrop-blur ${styles[item.kind]}`}
     >
+      <KindIcon kind={item.kind} />
       <p className="flex-1">{item.message}</p>
       <button
         onClick={onDismiss}
         aria-label="Dismiss notification"
         className="-mr-1 rounded p-0.5 opacity-70 hover:opacity-100"
       >
-        <Icon name="close" className="h-4 w-4" />
+        <X className="h-4 w-4" aria-hidden="true" />
       </button>
-    </div>
+    </motion.div>
   );
+}
+
+function KindIcon({ kind }: { kind: Kind }) {
+  const cls = 'mt-0.5 h-4 w-4 shrink-0';
+  if (kind === 'success') return <CheckCircle2 className={cls} aria-hidden="true" />;
+  if (kind === 'error') return <AlertCircle className={cls} aria-hidden="true" />;
+  return <Info className={cls} aria-hidden="true" />;
 }

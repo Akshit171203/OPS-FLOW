@@ -4,7 +4,7 @@ import { buttonClass, secondaryButtonClass } from './ui';
 export const Skeleton = ({ className = '' }: { className?: string }) => (
   <div
     aria-hidden="true"
-    className={`rounded-md bg-slate-200 motion-safe:animate-pulse ${className}`}
+    className={`skeleton-shimmer rounded-lg bg-skeleton motion-safe:animate-shimmer ${className}`}
   />
 );
 
@@ -31,7 +31,7 @@ export const LoadingRegion = ({
 
 export function Card({ className = '', children, ...rest }: React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <div {...rest} className={`rounded-lg border border-line bg-surface shadow-sm ${className}`}>
+    <div {...rest} className={`card-surface rounded-xl ${className}`}>
       {children}
     </div>
   );
@@ -46,7 +46,7 @@ export function SectionHeading({
 }) {
   return (
     <div className="mb-3 flex items-center justify-between gap-3">
-      <h2 className="text-base font-semibold text-ink">{children}</h2>
+      <h2 className="text-sm font-semibold uppercase tracking-wider text-ink-subtle">{children}</h2>
       {action}
     </div>
   );
@@ -64,7 +64,9 @@ export function PageHeader({
   return (
     <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
       <div className="min-w-0">
-        <h1 className="text-2xl font-semibold tracking-tight text-ink">{title}</h1>
+        <h1 className="text-[1.65rem] font-semibold leading-tight tracking-tight text-ink">
+          {title}
+        </h1>
         {description && <p className="mt-1 text-sm text-ink-muted">{description}</p>}
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
@@ -82,7 +84,7 @@ export function EmptyState({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="rounded-lg border border-dashed border-slate-300 bg-surface px-6 py-10 text-center">
+    <div className="rounded-xl border border-dashed border-line-strong bg-surface/60 px-6 py-12 text-center backdrop-blur">
       <p className="font-medium text-ink">{title}</p>
       {description && <p className="mx-auto mt-1 max-w-md text-sm text-ink-muted">{description}</p>}
       {action && <div className="mt-4 flex justify-center gap-2">{action}</div>}
@@ -92,7 +94,7 @@ export function EmptyState({
 
 export function ErrorState({ message, onRetry }: { message: string; onRetry?: () => void }) {
   return (
-    <div role="alert" className="rounded-lg border border-danger-line bg-danger-bg px-4 py-4">
+    <div role="alert" className="rounded-xl border border-danger-line bg-danger-bg px-4 py-4">
       <p className="font-medium text-danger-fg">Something went wrong</p>
       <p className="mt-1 text-sm text-danger-fg">{message}</p>
       {onRetry && (
@@ -104,24 +106,58 @@ export function ErrorState({ message, onRetry }: { message: string; onRetry?: ()
   );
 }
 
+const toneStyles = {
+  default: { value: 'text-ink', chip: 'bg-surface-2 text-ink-muted', glow: '' },
+  danger: {
+    value: 'text-sev1-fg',
+    chip: 'bg-sev1-bg text-sev1-fg',
+    glow: 'before:bg-[radial-gradient(18rem_8rem_at_100%_0%,rgb(244_63_94/0.14),transparent_70%)]',
+  },
+  warning: {
+    value: 'text-degraded-fg',
+    chip: 'bg-degraded-bg text-degraded-fg',
+    glow: 'before:bg-[radial-gradient(18rem_8rem_at_100%_0%,rgb(245_158_11/0.14),transparent_70%)]',
+  },
+  good: {
+    value: 'text-resolved-fg',
+    chip: 'bg-resolved-bg text-resolved-fg',
+    glow: 'before:bg-[radial-gradient(18rem_8rem_at_100%_0%,rgb(16_185_129/0.14),transparent_70%)]',
+  },
+} as const;
+
 export function StatCard({
   label,
   value,
   hint,
+  icon,
   tone = 'default',
 }: {
   label: string;
   value: React.ReactNode;
   hint?: React.ReactNode;
-  tone?: 'default' | 'danger' | 'warning';
+  icon?: React.ReactNode;
+  tone?: keyof typeof toneStyles;
 }) {
-  const accent =
-    tone === 'danger' ? 'text-sev1-fg' : tone === 'warning' ? 'text-degraded-fg' : 'text-ink';
+  const t = toneStyles[tone];
   return (
-    <Card className="p-4">
-      <p className="text-sm text-ink-muted">{label}</p>
-      <p className={`mt-1 text-3xl font-semibold tabular-nums ${accent}`}>{value}</p>
-      {hint && <p className="mt-1 text-xs text-ink-subtle">{hint}</p>}
+    <Card
+      className={`relative overflow-hidden p-4 before:pointer-events-none before:absolute before:inset-0 ${t.glow}`}
+    >
+      <div className="relative flex items-start justify-between gap-2">
+        <p className="text-sm text-ink-muted">{label}</p>
+        {icon && (
+          <span
+            aria-hidden="true"
+            className={`grid h-8 w-8 place-items-center rounded-lg ${t.chip}`}
+          >
+            {icon}
+          </span>
+        )}
+      </div>
+      <p className={`relative mt-2 text-[2rem] font-semibold leading-none tabular-nums ${t.value}`}>
+        {value}
+      </p>
+      {hint && <p className="relative mt-2 text-xs text-ink-subtle">{hint}</p>}
     </Card>
   );
 }

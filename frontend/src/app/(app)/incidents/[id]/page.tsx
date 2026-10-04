@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import {
   roleRank,
@@ -20,6 +21,8 @@ import {
   SkeletonLines,
 } from '@/components/feedback';
 import { DeploymentsPanel, LogsPanel, MetricsLine } from '@/components/IncidentPanels';
+import { eventIcon } from '@/components/eventIcon';
+import { LifecycleStepper } from '@/components/LifecycleStepper';
 import { useToast } from '@/components/toast';
 import {
   Button,
@@ -37,6 +40,13 @@ import { useMe } from '@/lib/me-context';
 import { useIncidentRoom, useReconnect, useSocketEvent } from '@/lib/socket';
 import { useFetch } from '@/lib/useFetch';
 import { usePageTitle } from '@/lib/usePageTitle';
+
+const sevBand = {
+  SEV1: 'from-sev1-fg',
+  SEV2: 'from-sev2-fg',
+  SEV3: 'from-sev3-fg',
+  SEV4: 'from-sev4-fg',
+} as const;
 
 function describeEvent(e: IncidentEventDto, nameOf: (id: unknown) => string): string {
   const m = e.metadata as Record<string, unknown> & {
@@ -168,17 +178,27 @@ export default function IncidentDetailPage() {
 
   return (
     <article>
-      <p className="mb-2 text-sm">
-        <Link href="/incidents" className={linkClass}>
-          ← Incidents
+      <p className="mb-3 text-sm">
+        <Link
+          href="/incidents"
+          className="inline-flex items-center gap-1.5 text-ink-muted transition-colors hover:text-ink"
+        >
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+          Incidents
         </Link>
       </p>
 
       {/* The header stays in view on wide screens so status and actions are always at hand */}
-      <header className="z-10 mb-6 rounded-lg border border-line bg-surface p-4 shadow-sm lg:sticky lg:top-16">
+      <header className="card-surface relative z-10 mb-6 overflow-hidden rounded-2xl p-5 lg:sticky lg:top-16">
+        <div
+          aria-hidden="true"
+          className={`absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r to-transparent ${sevBand[incident.severity]}`}
+        />
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
-            <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">{incident.title}</h1>
+            <h1 className="text-xl font-semibold tracking-tight sm:text-[1.6rem]">
+              {incident.title}
+            </h1>
             <p className="mt-1 text-sm text-ink-muted">
               <Link href={`/services/${incident.serviceId}`} className={linkClass}>
                 {incident.serviceName}
@@ -192,12 +212,16 @@ export default function IncidentDetailPage() {
             <PriorityBadge value={incident.priority} />
             <StatusBadge value={incident.status} />
             {incident.source !== 'manual' && (
-              <Pill className="bg-accent-100 text-accent-800">Alert · {incident.source}</Pill>
+              <Pill className="bg-accent-soft text-accent-ink">Alert · {incident.source}</Pill>
             )}
           </div>
         </div>
 
-        <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-line pt-3">
+        <div className="mt-4">
+          <LifecycleStepper status={incident.status} />
+        </div>
+
+        <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-line pt-4">
           <label className="flex items-center gap-2 text-sm">
             <span className="text-ink-muted">Assignee</span>
             {canWrite ? (
@@ -205,7 +229,7 @@ export default function IncidentDetailPage() {
                 value={incident.assignee?.id ?? ''}
                 disabled={busy}
                 onChange={(e) => assign(e.target.value)}
-                className="rounded-md border border-slate-300 bg-surface px-2 py-1.5 text-sm"
+                className="rounded-lg border border-line-strong bg-surface px-2.5 py-1.5 text-sm transition focus:border-accent-600 focus:outline-none focus:ring-2 focus:ring-accent-600/25"
               >
                 <option value="">Unassigned</option>
                 {members.data?.members.map((m) => (
@@ -273,22 +297,32 @@ export default function IncidentDetailPage() {
               <span id="timeline-h">Timeline</span>
             </SectionHeading>
             <Card className="p-4">
-              <ol className="relative space-y-4 border-l-2 border-line pl-4">
-                {events.map((e) => (
-                  <li key={e.id} className="relative text-sm">
-                    <span
-                      aria-hidden="true"
-                      className="absolute -left-[1.4rem] top-1.5 h-2.5 w-2.5 rounded-full border-2 border-surface bg-accent-600"
-                    />
-                    <p>
-                      <strong className="font-medium">{e.actor.name}</strong>{' '}
-                      {describeEvent(e, nameOf)}
-                    </p>
-                    <p className="text-xs text-ink-subtle" title={formatDate(e.createdAt)}>
-                      {timeAgo(e.createdAt)}
-                    </p>
-                  </li>
-                ))}
+              <ol className="relative space-y-5 before:absolute before:bottom-3 before:left-[13px] before:top-3 before:w-px before:bg-line-strong">
+                {events.map((e) => {
+                  const EventIcon = eventIcon(e.eventType);
+                  return (
+                    <li key={e.id} className="relative flex gap-3 text-sm">
+                      <span
+                        aria-hidden="true"
+                        className="relative z-10 grid h-7 w-7 shrink-0 place-items-center rounded-full border border-line-strong bg-surface text-accent-ink"
+                      >
+                        <EventIcon className="h-3.5 w-3.5" />
+                      </span>
+                      <div className="min-w-0 pt-0.5">
+                        <p className="leading-snug">
+                          <strong className="font-medium">{e.actor.name}</strong>{' '}
+                          <span className="text-ink-muted">{describeEvent(e, nameOf)}</span>
+                        </p>
+                        <p
+                          className="mt-0.5 text-xs text-ink-subtle"
+                          title={formatDate(e.createdAt)}
+                        >
+                          {timeAgo(e.createdAt)}
+                        </p>
+                      </div>
+                    </li>
+                  );
+                })}
               </ol>
             </Card>
           </section>
