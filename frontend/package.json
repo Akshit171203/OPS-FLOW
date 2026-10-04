@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start -p 3140",
     "typecheck": "tsc --noEmit",
-    "check:contrast": "node scripts/check-contrast.mjs"
+    "check:contrast": "node scripts/check-contrast.mjs",
+    "test": "node --test test/*.test.mjs"
   },
   "dependencies": {
     "@opsflow/shared": "workspace:*",

@@ -30,6 +30,9 @@ const patchStatus = (id: string, version: number, status: string) =>
     .set('cookie', o.engineer)
     .send({ version, status });
 
+/** Queries one authenticated request makes before reaching the handler: the membership lookup and the revoked-session lookup. */
+const AUTH_QUERIES = 2;
+
 describe('getOrSet', () => {
   it('loads once, serves the cached value, and never caches a failed load', async () => {
     const key = `unit:${randomUUID()}`;
@@ -162,7 +165,7 @@ describe('GET /api/dashboard', () => {
 
     expect(first.status).toBe(200);
     expect(firstQueries).toBeGreaterThan(2); // auth + the dashboard queries
-    expect(secondQueries).toBe(1); // auth only
+    expect(secondQueries).toBe(AUTH_QUERIES); // auth only
     expect(second.body).toEqual(first.body); // identical, including generatedAt
   });
 
@@ -258,7 +261,7 @@ describe('GET /api/services/health', () => {
     await get(o.viewer, '/api/services/health');
     const spy = vi.spyOn(pool, 'query');
     await get(o.viewer, '/api/services/health');
-    expect(spy.mock.calls.length).toBe(1);
+    expect(spy.mock.calls.length).toBe(AUTH_QUERIES);
     const theirs = await get(other.viewer, '/api/services/health');
     expect(theirs.body.services.map((s: { id: string }) => s.id)).toEqual([other.serviceId]);
   });

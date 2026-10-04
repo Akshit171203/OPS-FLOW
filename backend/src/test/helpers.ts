@@ -8,7 +8,7 @@ import { signToken } from '../middleware/auth';
 
 export async function resetDb() {
   await db.execute(
-    sql`TRUNCATE users, organizations, organization_members, idempotency_keys RESTART IDENTITY CASCADE`,
+    sql`TRUNCATE users, organizations, organization_members, idempotency_keys, revoked_sessions RESTART IDENTITY CASCADE`,
   );
 }
 

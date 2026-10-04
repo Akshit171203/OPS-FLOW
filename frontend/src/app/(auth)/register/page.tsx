@@ -19,7 +19,7 @@ export default function RegisterPage() {
           label: 'Password',
           type: 'password',
           autoComplete: 'new-password',
-          hint: 'At least 8 characters.',
+          hint: 'At least 8 characters, and not a common password or one containing your name or email.',
         },
       ]}
     />

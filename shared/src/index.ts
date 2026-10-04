@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { passwordProblem, passwordProblemMessage } from './password';
 
 export const roles = ['OWNER', 'ADMIN', 'ENGINEER', 'VIEWER'] as const;
 export const RoleSchema = z.enum(roles);
@@ -6,12 +7,24 @@ export type Role = z.infer<typeof RoleSchema>;
 
 export const roleRank: Record<Role, number> = { OWNER: 4, ADMIN: 3, ENGINEER: 2, VIEWER: 1 };
 
-export const RegisterSchema = z.object({
-  email: z.string().email().max(255),
-  password: z.string().min(8).max(128),
-  name: z.string().min(1).max(100),
-  organizationName: z.string().min(1).max(100),
-});
+export const RegisterSchema = z
+  .object({
+    email: z.string().email().max(255),
+    password: z.string().min(8).max(128),
+    name: z.string().min(1).max(100),
+    organizationName: z.string().min(1).max(100),
+  })
+  .superRefine((v, ctx) => {
+    const problem = passwordProblem(v.password, { email: v.email, name: v.name });
+    if (problem) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['password'],
+        message: passwordProblemMessage[problem],
+        params: { reason: problem },
+      });
+    }
+  });
 export type RegisterInput = z.infer<typeof RegisterSchema>;
 
 export const LoginSchema = z.object({
@@ -235,3 +248,5 @@ export interface AlertResultDto {
   incidentId: string | null;
   fingerprint: string;
 }
+
+export { passwordProblem, passwordProblemMessage, type PasswordProblem } from './password';

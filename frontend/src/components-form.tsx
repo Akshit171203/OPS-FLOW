@@ -44,7 +44,11 @@ export function AuthForm({
       router.replace('/');
       router.refresh();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Something went wrong. Please try again.');
+      setError(
+        err instanceof ApiError
+          ? (err.fieldMessage ?? err.message)
+          : 'Something went wrong. Please try again.',
+      );
       setPending(false);
     }
   }

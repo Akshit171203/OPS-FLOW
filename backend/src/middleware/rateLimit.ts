@@ -10,6 +10,8 @@ export const rules = {
   /** Backstop for login: blunts rotating IPs against one account. */
   loginByEmail: { name: 'login-email', limit: 20, windowMs: MINUTE },
   register: { name: 'register', limit: 10, windowMs: 60 * MINUTE },
+  /** Registration answers "that email is taken", which tells a visitor who has an account. Only email verification would remove that, so until then the same address can be tried only a few times an hour. */
+  registerByEmail: { name: 'register-email', limit: 3, windowMs: 60 * MINUTE },
   createIncident: { name: 'create-incident', limit: 20, windowMs: MINUTE },
   simulate: { name: 'simulate', limit: 6, windowMs: MINUTE },
   ingestLogs: { name: 'ingest-logs', limit: 300, windowMs: MINUTE },
@@ -57,6 +59,7 @@ const emailOf = (req: Request) =>
   typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
 
 export const loginLimit = rateLimit(rules.login, (req) => `${req.ip}:${emailOf(req)}`);
+export const registerByEmailLimit = rateLimit(rules.registerByEmail, (req) => emailOf(req) || null);
 export const loginByEmailLimit = rateLimit(rules.loginByEmail, (req) => emailOf(req) || null);
 export const registerLimit = rateLimit(rules.register, (req) => req.ip ?? 'unknown');
 export const createIncidentLimit = rateLimit(rules.createIncident, (req) => req.auth!.userId);

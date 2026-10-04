@@ -428,3 +428,32 @@ Short, in the form: context, decision, consequences, and when I would revisit.
 - **Context.** Machines need credentials that are not a person's password.
 - **Decision.** `ofk_` plus 256 random bits, stored as a SHA-256 hash, shown once, scoped, optionally locked to one service, revocable. Each key owns a hidden bot user so audit and timeline attribution need no special cases.
 - **Consequences.** A database leak does not leak usable keys. A fast hash is safe because the secret has full entropy; a slow hash would only add latency to every ingest request. Every place that lists or notifies people must exclude bots, which is tested.
+
+## Security review round (after Phase 8)
+
+A manual review against the checklist an AI pentester works through (access control, injection, sessions, headers, password handling) found four things worth fixing. Each has tests, and the sign-out one was checked by switching the fix off and watching the tests fail.
+
+### Signing out now revokes the token, not just the cookie
+
+The session is a signed JWT, and "log out" used to only delete the browser's copy. A copy that leaked (a log line, a stolen cookie) stayed valid for the whole 7 days. Each token now carries a unique id (`jti`); sign-out records that id in `revoked_sessions` until the moment the token would have expired anyway, and authentication refuses recorded ids. Two choices worth knowing:
+
+- **Per token, not per user.** The common shortcut is a per-user "token version" that invalidates everything. The public demo shares one account between every visitor, so that would sign everyone out whenever one person did. A test covers exactly this.
+- **In Postgres, not Redis.** Authentication already needs the database for the membership check, so the revocation lookup adds no new dependency, and a Redis outage cannot quietly turn revocation off. Expired entries are deleted as new sign-outs arrive.
+
+Not covered: a WebSocket that is already connected stays open until it disconnects; only new handshakes are refused. Tokens issued before this change have no id and age out normally.
+
+### Registration: slower enumeration, not removed
+
+Registering with an existing email answers "already exists", which tells a visitor who has an account. Fixing that completely needs email verification (always answer "check your inbox"), and OpsFlow sends no email. So this round only makes it expensive: the same address can be tried 3 times an hour regardless of IP, and the password is hashed before the uniqueness check, so both outcomes take about the same time. Verification is the real fix and is listed as future work.
+
+### Browser security headers on the web app
+
+The API already sent security headers; the Next.js pages sent none, so any site could frame OpsFlow and there was no Content-Security-Policy. Every page now sends `X-Frame-Options: DENY`, `nosniff`, a referrer policy, a permissions policy and a COOP header, and production builds add a CSP (same-origin only, no framing, no plugins, no foreign form targets). The CSP still allows inline scripts and styles because Next injects bootstrap scripts without a nonce; moving to nonces is the tightening left on the table. The CSP is off in development because hot reload needs eval. Verified in a real browser: no violations on any page, and the live socket still connects.
+
+### New passwords are checked, old ones are not
+
+Length 8 alone accepts "password1". Registration now also refuses a short list of the most common passwords (including variants like "Password123!"), short all-digit passwords, a single repeated character, and anything built from the person's own email or name. Sign-in does not apply the rules, so existing accounts keep working. The form shows the server's reason. A list of a few hundred is a floor, not a breach-corpus check; a k-anonymity lookup against a breached-password service would be the next step.
+
+### Left as it is on purpose
+
+Rate limiting still fails open when Redis is down. Taking the whole API down with Redis is the worse trade for this app, and the failure is logged. Worth revisiting if the login limits ever become the only brute-force defence.

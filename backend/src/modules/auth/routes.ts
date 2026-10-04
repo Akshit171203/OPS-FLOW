@@ -1,15 +1,27 @@
 import { Router } from 'express';
 import type { MeResponse } from '@opsflow/shared';
-import { clearAuthCookie, requireAuth, setAuthCookie, signToken } from '../../middleware/auth';
+import {
+  clearAuthCookie,
+  COOKIE_NAME,
+  requireAuth,
+  setAuthCookie,
+  signToken,
+} from '../../middleware/auth';
 import { parse } from '../../lib/validate';
 import { isDemoAccount } from '../../middleware/demoGuard';
-import { loginByEmailLimit, loginLimit, registerLimit } from '../../middleware/rateLimit';
+import {
+  loginByEmailLimit,
+  loginLimit,
+  registerByEmailLimit,
+  registerLimit,
+} from '../../middleware/rateLimit';
 import { LoginSchema, RegisterSchema } from './schemas';
+import { revokeSession } from './sessions';
 import { authService } from './service';
 
 export const authRouter = Router();
 
-authRouter.post('/register', registerLimit, async (req, res) => {
+authRouter.post('/register', registerLimit, registerByEmailLimit, async (req, res) => {
   const input = parse(RegisterSchema, req.body);
   const { userId, organizationId } = await authService.register(input);
   setAuthCookie(res, signToken(userId, organizationId));
@@ -23,7 +35,8 @@ authRouter.post('/login', loginLimit, loginByEmailLimit, async (req, res) => {
   res.json({ ok: true });
 });
 
-authRouter.post('/logout', (_req, res) => {
+authRouter.post('/logout', async (req, res) => {
+  await revokeSession(req.cookies?.[COOKIE_NAME] as string | undefined);
   clearAuthCookie(res);
   res.status(204).end();
 });

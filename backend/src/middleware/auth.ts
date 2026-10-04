@@ -1,10 +1,11 @@
 import type { NextFunction, Request, RequestHandler, Response } from 'express';
+import { randomUUID } from 'node:crypto';
 import jwt from 'jsonwebtoken';
 import { and, eq } from 'drizzle-orm';
 import type { Role } from '@opsflow/shared';
 import { roleRank } from '@opsflow/shared';
 import { db } from '../db/client';
-import { organizationMembers, organizations, users } from '../db/schema';
+import { organizationMembers, organizations, revokedSessions, users } from '../db/schema';
 import { config, isProduction } from '../lib/config';
 import { ForbiddenError, UnauthorizedError } from '../lib/errors';
 
@@ -23,11 +24,14 @@ export interface AuthContext {
 interface TokenPayload {
   sub: string;
   org: string;
+  /** Unique per token, so one session can be signed out without touching the user's others. */
+  jti?: string;
 }
 
 export function signToken(userId: string, organizationId: string): string {
   return jwt.sign({ org: organizationId }, config.JWT_SECRET, {
     subject: userId,
+    jwtid: randomUUID(),
     expiresIn: config.JWT_EXPIRES_IN as jwt.SignOptions['expiresIn'],
   });
 }
@@ -98,6 +102,14 @@ export async function authenticateToken(token: string | undefined): Promise<Auth
       ),
     );
   if (!row) throw new UnauthorizedError('Invalid or expired session');
+  // Signed out before it expired? Tokens issued before this check existed have no id and simply age out.
+  if (payload.jti) {
+    const [revoked] = await db
+      .select({ jti: revokedSessions.jti })
+      .from(revokedSessions)
+      .where(eq(revokedSessions.jti, payload.jti));
+    if (revoked) throw new UnauthorizedError('Invalid or expired session');
+  }
   return row;
 }
 

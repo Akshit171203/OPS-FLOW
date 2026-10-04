@@ -5,8 +5,16 @@ export class ApiError extends Error {
     readonly status: number,
     readonly code: string,
     message: string,
+    readonly details?: unknown,
   ) {
     super(message);
+  }
+
+  /** The first per-field validation message the server sent (for example why a password was refused). */
+  get fieldMessage(): string | undefined {
+    const fields = (this.details as { fieldErrors?: Record<string, string[]> } | undefined)
+      ?.fieldErrors;
+    return fields ? Object.values(fields).flat()[0] : undefined;
   }
 }
 
@@ -31,6 +39,7 @@ export async function api<T>(
       res.status,
       body?.error.code ?? 'UNKNOWN',
       body?.error.message ?? res.statusText,
+      body?.error.details,
     );
   }
   return res.status === 204 ? (undefined as T) : ((await res.json()) as T);

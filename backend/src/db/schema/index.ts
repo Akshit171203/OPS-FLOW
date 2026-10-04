@@ -40,6 +40,16 @@ export const users = pgTable('users', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
+/**
+ * Session tokens that were signed out before they expired. A token is a signed JWT, so without this table
+ * "sign out" only deletes the browser's copy and a stolen token would keep working. Rows are only needed
+ * until the token's own expiry, so they are cleaned up as new sign-outs arrive.
+ */
+export const revokedSessions = pgTable('revoked_sessions', {
+  jti: uuid('jti').primaryKey(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+});
+
 export const organizations = pgTable('organizations', {
   id: uuid('id').primaryKey().defaultRandom(),
   name: text('name').notNull(),
