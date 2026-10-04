@@ -26,7 +26,8 @@ services:
     plan: free
     dockerfilePath: ./backend/Dockerfile
     dockerContext: .
-    dockerCommand: sh -c "pnpm --filter @opsflow/backend db:migrate && pnpm --filter @opsflow/backend start"
+    # Migrate, then start. A package script, because Render does not run dockerCommand through a shell.
+    dockerCommand: pnpm --filter @opsflow/backend start:prod
     healthCheckPath: /ready
     envVars:
       - key: NODE_ENV
