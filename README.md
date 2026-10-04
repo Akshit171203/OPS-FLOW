@@ -8,6 +8,14 @@ Your services connect with an API key and a webhook. A monitoring alert (Alertma
 
 > **Not deployed yet.** The code, Docker images and a Render Blueprint are ready ([docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)); I have not published a live URL. Run it locally in a few commands below.
 
+## Screenshots
+
+![The dashboard: open incidents, services needing attention, recent deployments and activity](docs/images/dashboard.png)
+
+![An incident page: timeline, service health and the AI analysis with causes, confidence and evidence](docs/images/incident-detail.png)
+
+The incident above was opened with **Simulate payment outage** on the seeded demo data. The analysis came from the built-in offline analyzer, which the page labels as such.
+
 ## What it does
 
 - **Incidents with a strict lifecycle** (OPEN → INVESTIGATING → MITIGATED → RESOLVED), a timeline of every change, comments, assignees, and optimistic locking so two people cannot silently overwrite each other.
