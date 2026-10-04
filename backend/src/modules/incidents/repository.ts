@@ -27,6 +27,8 @@ const selection = {
   startedAt: incidents.startedAt,
   resolvedAt: incidents.resolvedAt,
   version: incidents.version,
+  source: incidents.source,
+  alertFingerprint: incidents.alertFingerprint,
   createdAt: incidents.createdAt,
   updatedAt: incidents.updatedAt,
 };
@@ -42,6 +44,18 @@ function base(ex: Executor) {
 }
 
 export const incidentsRepository = {
+  /** The open (not resolved or closed) incident raised by this alert fingerprint, if any. */
+  async findOpenByFingerprint(ex: Executor, organizationId: string, fingerprint: string) {
+    const [row] = await base(ex).where(
+      and(
+        eq(incidents.organizationId, organizationId),
+        eq(incidents.alertFingerprint, fingerprint),
+        sql`${incidents.status} NOT IN ('RESOLVED', 'CLOSED')`,
+      ),
+    );
+    return row;
+  },
+
   /** Past resolved incidents of a service, for "similar incidents" in AI analysis. */
   listResolvedForService(
     ex: Executor,
@@ -112,6 +126,8 @@ export const incidentsRepository = {
       priority?: Priority;
       assignedTo?: string;
       createdBy: string;
+      source?: string;
+      alertFingerprint?: string;
     },
   ) {
     const [row] = await ex.insert(incidents).values(v).returning({ id: incidents.id });

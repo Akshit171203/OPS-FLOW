@@ -33,7 +33,8 @@ export const authService = {
   },
 
   async login(input: LoginInput) {
-    const user = await repo.findUserByEmail(db, normalizeEmail(input.email));
+    const found = await repo.findUserByEmail(db, normalizeEmail(input.email));
+    const user = found?.isBot ? undefined : found; // service accounts can never sign in
     const hash = user?.passwordHash ?? (await dummyHashPromise);
     const valid = await argon2.verify(hash, input.password);
     if (!user || !valid) {

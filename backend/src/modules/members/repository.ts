@@ -1,22 +1,25 @@
-import { and, asc, eq } from 'drizzle-orm';
+import { and, asc, eq, sql } from 'drizzle-orm';
 import type { Role } from '@opsflow/shared';
 import type { Executor } from '../../db/client';
 import { organizationMembers, users } from '../../db/schema';
 
 export const membersRepository = {
   listByOrg(ex: Executor, organizationId: string) {
-    return ex
-      .select({
-        id: organizationMembers.id,
-        userId: users.id,
-        email: users.email,
-        name: users.name,
-        role: organizationMembers.role,
-      })
-      .from(organizationMembers)
-      .innerJoin(users, eq(users.id, organizationMembers.userId))
-      .where(eq(organizationMembers.organizationId, organizationId))
-      .orderBy(asc(organizationMembers.createdAt));
+    return (
+      ex
+        .select({
+          id: organizationMembers.id,
+          userId: users.id,
+          email: users.email,
+          name: users.name,
+          role: organizationMembers.role,
+        })
+        .from(organizationMembers)
+        .innerJoin(users, eq(users.id, organizationMembers.userId))
+        // API-key service accounts are not people: never list them as members or offer them as assignees
+        .where(and(eq(organizationMembers.organizationId, organizationId), eq(users.isBot, false)))
+        .orderBy(asc(organizationMembers.createdAt))
+    );
   },
   async findUserByEmail(ex: Executor, email: string) {
     const [u] = await ex.select().from(users).where(eq(users.email, email));
@@ -39,6 +42,8 @@ export const membersRepository = {
         and(
           eq(organizationMembers.organizationId, organizationId),
           eq(organizationMembers.userId, userId),
+          // an API key's service account is not a person: it cannot be assigned work or counted as a member
+          sql`${organizationMembers.userId} IN (SELECT id FROM users WHERE is_bot = false)`,
         ),
       );
     return m;

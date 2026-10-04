@@ -13,6 +13,7 @@ const NAV = [
   { href: '/incidents', label: 'Incidents', icon: 'incidents' },
   { href: '/services', label: 'Services', icon: 'services' },
   { href: '/runbooks', label: 'Runbooks', icon: 'runbooks' },
+  { href: '/integrations', label: 'Integrations', icon: 'plug', adminOnly: true },
 ] as const;
 
 function Brand() {
@@ -32,11 +33,11 @@ function Brand() {
   );
 }
 
-function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
+function NavLinks({ onNavigate, isAdmin }: { onNavigate?: () => void; isAdmin: boolean }) {
   const pathname = usePathname();
   return (
     <nav aria-label="Main" className="flex-1 space-y-1 px-2">
-      {NAV.map((item) => {
+      {NAV.filter((item) => !('adminOnly' in item) || isAdmin).map((item) => {
         const active =
           'exact' in item && item.exact
             ? pathname === item.href
@@ -138,6 +139,7 @@ export function AppShell({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const isAdmin = me.role === 'OWNER' || me.role === 'ADMIN';
   const [navOpen, setNavOpen] = useState(false);
   const openerRef = useRef<HTMLButtonElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -166,7 +168,7 @@ export function AppShell({
       {/* Desktop sidebar */}
       <aside className="fixed inset-y-0 left-0 z-20 hidden w-60 flex-col border-r border-line bg-surface lg:flex">
         <Brand />
-        <NavLinks />
+        <NavLinks isAdmin={isAdmin} />
         <OrgFooter me={me} />
       </aside>
 
@@ -191,7 +193,7 @@ export function AppShell({
                 <Icon name="close" />
               </button>
             </div>
-            <NavLinks onNavigate={() => setNavOpen(false)} />
+            <NavLinks isAdmin={isAdmin} onNavigate={() => setNavOpen(false)} />
             <OrgFooter me={me} />
           </div>
         </div>

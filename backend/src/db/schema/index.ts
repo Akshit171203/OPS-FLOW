@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import {
+  boolean,
   check,
   doublePrecision,
   index,
@@ -34,6 +35,8 @@ export const users = pgTable('users', {
   email: text('email').notNull().unique(),
   passwordHash: text('password_hash').notNull(),
   name: text('name').notNull(),
+  /** Service accounts for API keys: they appear in audit logs and timelines but cannot sign in. */
+  isBot: boolean('is_bot').notNull().default(false),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -122,10 +125,18 @@ export const incidents = pgTable(
     startedAt: timestamp('started_at', { withTimezone: true }).notNull().defaultNow(),
     resolvedAt: timestamp('resolved_at', { withTimezone: true }),
     version: integer('version').notNull().default(1),
+    /** 'manual', or the system that raised it automatically. */
+    source: text('source').notNull().default('manual'),
+    /** Identity of the alert that opened it, so repeats of the same alert attach here instead of opening duplicates. */
+    alertFingerprint: text('alert_fingerprint'),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
   (t) => [
+    // one OPEN incident per alert fingerprint, enforced by the database even under concurrent webhooks
+    uniqueIndex('incidents_open_alert_fingerprint')
+      .on(t.organizationId, t.alertFingerprint)
+      .where(sql`${t.alertFingerprint} IS NOT NULL AND ${t.status} NOT IN ('RESOLVED', 'CLOSED')`),
     index('incidents_org_status_idx').on(t.organizationId, t.status),
     index('incidents_service_created_idx').on(t.serviceId, t.createdAt),
     check(
@@ -381,4 +392,29 @@ export const aiAnalyses = pgTable(
       .on(t.incidentId)
       .where(sql`${t.status} IN ('QUEUED', 'RUNNING')`),
   ],
+);
+
+export const apiKeys = pgTable(
+  'api_keys',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    organizationId: orgId(),
+    name: text('name').notNull(),
+    keyPrefix: text('key_prefix').notNull(),
+    /** SHA-256 of the key. The key itself is never stored; it is high-entropy random, so a fast hash is correct. */
+    keyHash: text('key_hash').notNull().unique(),
+    scopes: text('scopes').array().notNull(),
+    /** When set, the key can only act on this one service. */
+    serviceId: uuid('service_id').references(() => services.id, { onDelete: 'cascade' }),
+    botUserId: uuid('bot_user_id')
+      .notNull()
+      .references(() => users.id),
+    createdBy: uuid('created_by')
+      .notNull()
+      .references(() => users.id),
+    createdAt: createdAt(),
+    lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
+    revokedAt: timestamp('revoked_at', { withTimezone: true }),
+  },
+  (t) => [index('api_keys_org_idx').on(t.organizationId)],
 );

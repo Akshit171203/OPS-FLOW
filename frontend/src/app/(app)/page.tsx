@@ -102,7 +102,11 @@ export default function DashboardPage() {
       ) : quiet ? (
         <EmptyState
           title="Nothing to show yet"
-          description="No incidents, deployments or activity so far. Create a service and open an incident, or simulate an outage to see the whole flow."
+          description={
+            isAdmin
+              ? 'No incidents, deployments or activity yet. Connect your systems under Integrations so alerts and deploys arrive on their own, or simulate an outage to see the whole flow.'
+              : 'No incidents, deployments or activity yet.'
+          }
           action={
             isAdmin ? (
               <Button onClick={simulate} loading={simulating} loadingText="Simulating…">

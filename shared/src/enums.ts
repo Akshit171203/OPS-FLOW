@@ -77,3 +77,7 @@ export const aiErrorCodes = [
   'AI_UNKNOWN',
 ] as const;
 export type AiErrorCode = (typeof aiErrorCodes)[number];
+
+/** What an API key may do: send logs, metrics and deployments, and/or send alerts that open incidents. */
+export const apiKeyScopes = ['ingest', 'alerts'] as const;
+export type ApiKeyScope = (typeof apiKeyScopes)[number];

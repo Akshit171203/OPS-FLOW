@@ -27,6 +27,19 @@ const paths: Record<string, React.ReactNode> = {
       <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z" />
     </>
   ),
+  plug: (
+    <>
+      <path d="M9 2v6M15 2v6" />
+      <path d="M6 8h12v4a6 6 0 0 1-12 0V8Z" />
+      <path d="M12 18v4" />
+    </>
+  ),
+  copy: (
+    <>
+      <rect x="9" y="9" width="13" height="13" rx="2" />
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+    </>
+  ),
   menu: (
     <>
       <path d="M4 6h16M4 12h16M4 18h16" />

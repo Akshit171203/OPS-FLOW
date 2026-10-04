@@ -86,6 +86,8 @@ export interface IncidentDto {
   startedAt: string;
   resolvedAt: string | null;
   version: number;
+  /** 'manual' for incidents a person opened, otherwise the system that raised it (alertmanager, grafana, webhook ...). */
+  source: string;
   allowedNextStatuses: IncidentStatus[];
   createdAt: string;
   updatedAt: string;
@@ -205,3 +207,29 @@ export interface ServiceHealthDto {
   latestMetric: MetricDto | null;
 }
 export * from './ai';
+
+import type { ApiKeyScope } from './enums';
+
+export interface ApiKeyDto {
+  id: string;
+  name: string;
+  /** First characters of the key, so people can tell keys apart. The full key is never retrievable. */
+  keyPrefix: string;
+  scopes: ApiKeyScope[];
+  serviceId: string | null;
+  serviceName: string | null;
+  createdAt: string;
+  lastUsedAt: string | null;
+  revokedAt: string | null;
+}
+
+/** Returned once, when a key is created. This is the only time the secret is shown. */
+export interface CreatedApiKeyDto extends ApiKeyDto {
+  key: string;
+}
+
+export interface AlertResultDto {
+  action: 'created' | 'attached' | 'noted' | 'ignored';
+  incidentId: string | null;
+  fingerprint: string;
+}

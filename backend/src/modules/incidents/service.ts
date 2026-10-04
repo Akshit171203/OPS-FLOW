@@ -38,6 +38,7 @@ export const toIncidentDto = (r: NonNullable<IncidentRow>): IncidentDto => ({
   startedAt: r.startedAt.toISOString(),
   resolvedAt: r.resolvedAt?.toISOString() ?? null,
   version: r.version,
+  source: r.source,
   allowedNextStatuses: [...allowedTransitions(r.status)],
   createdAt: r.createdAt.toISOString(),
   updatedAt: r.updatedAt.toISOString(),
@@ -140,6 +141,9 @@ export const incidentsService = {
       severity: Severity;
       priority?: Priority;
       assigneeId?: string;
+      /** Set when the incident is raised automatically (an alert) instead of by a person. */
+      source?: string;
+      alertFingerprint?: string;
     },
   ): Promise<IncidentDto> {
     const orgId = ctx.actor.organizationId;
@@ -157,6 +161,8 @@ export const incidentsService = {
         priority: input.priority,
         assignedTo: input.assigneeId,
         createdBy: ctx.actor.userId,
+        source: input.source,
+        alertFingerprint: input.alertFingerprint,
       });
       const metadata = { title: input.title, severity: input.severity, serviceId: input.serviceId };
       await repo.insertEvent(tx, {

@@ -12,8 +12,10 @@ import { adminRouter } from './modules/admin/routes';
 import { dashboardRouter } from './modules/dashboard/routes';
 import { demoRouter } from './modules/demo/routes';
 import { deploymentsRouter, incidentDeploymentsRouter } from './modules/deployments/routes';
+import { apiKeysRouter } from './modules/apikeys/routes';
 import { aiRouter, incidentAnalysisRouter } from './modules/analysis/routes';
 import { incidentsRouter } from './modules/incidents/routes';
+import { integrationsRouter } from './modules/integrations/routes';
 import { logsRouter } from './modules/logs/routes';
 import { membersRouter } from './modules/members/routes';
 import { metricsRouter } from './modules/metrics/routes';
@@ -86,6 +88,8 @@ export function buildApp() {
   app.use('/api/dashboard', dashboardRouter);
   app.use('/api/runbooks', runbooksRouter);
   app.use('/api/ai', aiRouter);
+  app.use('/api/api-keys', apiKeysRouter);
+  app.use('/api/integrations', integrationsRouter);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

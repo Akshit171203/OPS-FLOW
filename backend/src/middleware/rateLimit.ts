@@ -13,6 +13,12 @@ export const rules = {
   createIncident: { name: 'create-incident', limit: 20, windowMs: MINUTE },
   simulate: { name: 'simulate', limit: 6, windowMs: MINUTE },
   ingestLogs: { name: 'ingest-logs', limit: 300, windowMs: MINUTE },
+  /** Failed API key attempts per IP: stops key guessing long before it could matter. */
+  badApiKey: { name: 'bad-api-key', limit: 30, windowMs: MINUTE },
+  /** Alerts per API key. Monitoring tools can send bursts, so this is generous. */
+  alerts: { name: 'alerts', limit: 120, windowMs: MINUTE },
+  /** New incidents opened automatically per organization: a storm of distinct alerts must not flood the team. */
+  autoIncidents: { name: 'auto-incidents', limit: 30, windowMs: 60 * MINUTE },
   /** Wired to the AI analysis endpoint in Phase 6. */
   aiAnalysis: { name: 'ai-analysis', limit: 10, windowMs: MINUTE },
 } satisfies Record<string, RateLimitRule>;
@@ -57,3 +63,4 @@ export const createIncidentLimit = rateLimit(rules.createIncident, (req) => req.
 export const simulateLimit = rateLimit(rules.simulate, (req) => req.auth!.userId);
 export const ingestLogsLimit = rateLimit(rules.ingestLogs, (req) => req.auth!.organizationId);
 export const aiAnalysisLimit = rateLimit(rules.aiAnalysis, (req) => req.auth!.userId);
+export const alertsLimit = rateLimit(rules.alerts, (req) => req.apiKey?.id ?? req.ip ?? 'unknown');

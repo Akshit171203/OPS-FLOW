@@ -296,3 +296,45 @@ On wide screens the incident header (severity, status, assignee, status actions)
 ### Small API additions, each for a specific screen
 
 `recentActivity` on the dashboard (the newest timeline entries across incidents, cached and invalidated with the rest of the dashboard), `GET /api/services/:id`, and `GET /api/services/:id/metrics?hours=` for the chart (oldest first, capped at 500 points). No new tables.
+
+## Phase 7.5: Integrations
+
+### OpsFlow is the response half; it receives alerts, it does not detect
+
+Detecting that something is wrong is a monitoring tool's job (Prometheus, Grafana, Datadog). OpsFlow's job is what happens next: open the incident, bring the evidence together, coordinate people, keep the record. Until this phase it had no door for outside systems, so every demo ran on seeded data. This phase adds that door in the standard shape the industry uses: machine credentials plus webhooks, and it speaks the Alertmanager format that Prometheus and Grafana already emit, so connecting them is configuration, not code.
+
+### API keys: hashed, shown once, scoped, revocable
+
+Keys are `ofk_` plus 256 random bits. Only a SHA-256 hash is stored: because the key is random and long, there is nothing to brute-force, and a fast hash keeps every request cheap, where a slow password hash would only add latency. The secret appears in one response (creation) and nowhere else, not in the list, the audit log or any error. Scopes (`ingest`, `alerts`) give least privilege, and a key can be tied to one service so a leaked CI key can only affect the service it serves. Revocation is a timestamp checked on every request, so it takes effect at once. Failed attempts are counted per IP and answer 429 after 30 a minute.
+
+### One identity model: every key is a hidden service account
+
+Audit logs, incident timelines and "created by" are all foreign keys to users. Rather than special-casing "an actor that is not a user" in a dozen places, each key gets a bot user (`is_bot`), so existing code attributes actions to it by name ("grafana opened the incident") unchanged. The cost is a rule that must hold everywhere a person is expected: bots are never listed as members, offered as assignees, added by email, signed in as (their password is a hash of random bytes and the login also refuses them) or sent notifications. These are tested individually; the tests found three places where my first edits had silently not applied.
+
+### An explicit Authorization header means "this is a key", with no fallback
+
+If a request carries `Authorization`, it must be a valid key, even if it also has a valid session cookie. Falling back would let a typo'd or revoked key quietly succeed as whichever person happened to be logged in, hiding the misconfiguration and attributing machine actions to a human. Requests with a key skip the CSRF header requirement because they carry no ambient browser credentials, the thing CSRF abuses. The alerts endpoints accept keys only.
+
+### Deduplication is a database guarantee, not an if-statement
+
+Monitoring tools resend alerts constantly, and may deliver the same one twice at once. A partial unique index allows only one OPEN incident per (organization, alert fingerprint). Two simultaneous firing alerts both try to insert; one wins, the other hits the unique violation and attaches to the winner. A test fires six at once and expects exactly one incident. Because the index only covers open incidents, the same alert firing after the incident is resolved correctly opens a new one.
+
+### A resolved alert adds a note and never closes the incident
+
+Monitoring can say a metric recovered; only a person can say the incident is over (the cause may be unfixed, a customer may still be affected, a post-mortem may be pending). Auto-closing would also hide an incident from the open list exactly when it might recur. The note and the live update give the team the signal, and closing stays a human action.
+
+### Flood protection at two levels
+
+Repeats of an open alert are cheap and allowed (120 a minute per key), and add at most one timeline entry a minute, so a flapping alert cannot bury the timeline. Opening new incidents automatically is capped at 30 an hour per organization, so a misconfigured rule that generates a new alert name per request cannot create thousands of incidents and thousands of notifications.
+
+### Recent deployments are linked automatically
+
+When an alert opens an incident, deployments of that service from the last hour (at most three, newest first) are linked to it. "What changed just before this broke" is the first question in nearly every incident, and answering it automatically is the most valuable thing the integration adds. The link is a suspect list, not a verdict; ranking the causes is the AI analysis's job.
+
+### Services by slug, and logs by service
+
+Senders know their own service's name, not an OpsFlow UUID, so the API accepts slugs (resolved within the caller's organization only, so another tenant's slug is simply "unknown"). Likewise a log sender does not know an incident exists, so logs belong to the service, and the incident page shows that service's logs from 30 minutes before the incident began. Showing only logs tagged with the incident id left an alert-created incident with an empty log panel; this was found by running the demo shop against the real stack, not by a test.
+
+### A demo you cannot fake
+
+`examples/demo-shop` is a zero-dependency Node website with a small connection pool, its own traffic, and a "bad deploy" switch that leaks connections. It reports deployments, ships logs and metrics, and evaluates its own alert rule, all through the public API with a key. It creates its own key on first run against a seeded local OpsFlow. It also never fails because monitoring is down (the shop kept serving while OpsFlow restarted). Crashing it produced an incident within eight seconds, with the right deployment linked, real logs, DOWN health, notifications and an AI analysis that cites the deployment.

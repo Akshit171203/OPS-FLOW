@@ -13,6 +13,10 @@ export function activityVerb(eventType: string): string {
       return 'commented on';
     case 'incident.deployment_linked':
       return 'linked a deployment to';
+    case 'incident.alert_repeated':
+      return 'saw the alert fire again on';
+    case 'incident.alert_resolved':
+      return 'saw the alert resolve on';
     case 'ai.analysis.requested':
       return 'requested an AI analysis of';
     case 'ai.analysis.started':

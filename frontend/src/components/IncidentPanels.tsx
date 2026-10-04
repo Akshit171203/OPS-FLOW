@@ -56,7 +56,20 @@ const levelStyle: Record<LogLevel, string> = {
   ERROR: 'bg-down-bg text-down-fg',
 };
 
-export function LogsPanel({ incidentId, refreshKey }: { incidentId: string; refreshKey: number }) {
+/** Logs are usually sent per service (the sender does not know an incident exists yet), so show the service's logs from shortly before the incident started. */
+const LOG_LEAD_MS = 30 * 60_000;
+
+export function LogsPanel({
+  serviceId,
+  startedAt,
+  resolvedAt,
+  refreshKey,
+}: {
+  serviceId: string;
+  startedAt: string;
+  resolvedAt: string | null;
+  refreshKey: number;
+}) {
   const [level, setLevel] = useState<LogLevel | ''>('');
   const [items, setItems] = useState<LogDto[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
@@ -67,12 +80,17 @@ export function LogsPanel({ incidentId, refreshKey }: { incidentId: string; refr
 
   const query = useCallback(
     (after?: string | null) => {
-      const p = new URLSearchParams({ incidentId, limit: '25' });
+      const p = new URLSearchParams({
+        serviceId,
+        limit: '25',
+        from: new Date(Date.parse(startedAt) - LOG_LEAD_MS).toISOString(),
+      });
+      if (resolvedAt) p.set('to', new Date(Date.parse(resolvedAt) + 5 * 60_000).toISOString());
       if (level) p.set('level', level);
       if (after) p.set('cursor', after);
       return api<CursorPage<LogDto>>(`/api/logs?${p}`);
     },
-    [incidentId, level],
+    [serviceId, startedAt, resolvedAt, level],
   );
 
   const load = useCallback(() => {

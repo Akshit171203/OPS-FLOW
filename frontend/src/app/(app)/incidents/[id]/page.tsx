@@ -24,6 +24,7 @@ import { useToast } from '@/components/toast';
 import {
   Button,
   inputClass,
+  Pill,
   linkClass,
   PriorityBadge,
   secondaryButtonClass,
@@ -54,6 +55,10 @@ function describeEvent(e: IncidentEventDto, nameOf: (id: unknown) => string): st
       return 'added a comment';
     case 'incident.deployment_linked':
       return `linked deployment ${String(e.metadata.version)} to this incident`;
+    case 'incident.alert_repeated':
+      return 'reported the alert firing again';
+    case 'incident.alert_resolved':
+      return 'reported the alert resolved (the incident stays open until someone closes it)';
     case 'ai.analysis.requested':
       return 'requested an AI analysis';
     case 'ai.analysis.started':
@@ -186,6 +191,9 @@ export default function IncidentDetailPage() {
             <SeverityBadge value={incident.severity} />
             <PriorityBadge value={incident.priority} />
             <StatusBadge value={incident.status} />
+            {incident.source !== 'manual' && (
+              <Pill className="bg-accent-100 text-accent-800">Alert · {incident.source}</Pill>
+            )}
           </div>
         </div>
 
@@ -245,7 +253,12 @@ export default function IncidentDetailPage() {
             <MetricsLine serviceId={incident.serviceId} refreshKey={refreshKey} />
           </Card>
           <AiAnalysisPanel incidentId={id} canRun={canWrite} />
-          <LogsPanel incidentId={id} refreshKey={refreshKey} />
+          <LogsPanel
+            serviceId={incident.serviceId}
+            startedAt={incident.startedAt}
+            resolvedAt={incident.resolvedAt}
+            refreshKey={refreshKey}
+          />
           <DeploymentsPanel
             incidentId={id}
             canLink={canWrite}

@@ -16,6 +16,7 @@ import {
   Button,
   buttonClass,
   inputClass,
+  Pill,
   secondaryButtonClass,
   SeverityBadge,
   StatusBadge,
@@ -222,7 +223,10 @@ export default function IncidentsPage() {
                       {i.assignee ? i.assignee.name : 'Unassigned'}
                     </p>
                   </div>
-                  <div className="flex shrink-0 gap-1.5">
+                  <div className="flex shrink-0 flex-wrap gap-1.5">
+                    {i.source !== 'manual' && (
+                      <Pill className="bg-accent-100 text-accent-800">Alert</Pill>
+                    )}
                     <SeverityBadge value={i.severity} />
                     <StatusBadge value={i.status} />
                   </div>

@@ -2,7 +2,7 @@
 
 Incident management for engineering teams: incidents with a strict lifecycle, live timelines, logs and deployments, and optional AI-assisted analysis.
 
-Status: Phase 7 (frontend polish) complete — dashboard, app shell, services and runbooks pages, designed loading/empty/error states, accessible and mobile friendly, on top of Phase 6 (AI incident analysis) — retrieval over runbooks, validated structured output, async analysis with live progress and usage tracking, on top of Phase 5 (Redis hardening and security) — rate limiting, caching, locks, CSRF/CORS, readiness and graceful shutdown, on top of Phase 4 (realtime and operational data) — live incident pages, logs, deployments, metrics and a seeded demo, on top of Phase 3 (async backbone) — events are published after commit and processed by a separate worker with retries and idempotency, on top of Phase 2 (core domain) — incidents with a strict lifecycle, timeline, audit trail and optimistic concurrency, on top of auth and RBAC.
+Status: Integrations complete: real services connect with API keys, alerts open incidents automatically (Alertmanager, Grafana or plain webhooks), deployments, logs and metrics flow in, on top of Phase 7 (frontend polish) — dashboard, app shell, services and runbooks pages, designed loading/empty/error states, accessible and mobile friendly, on top of Phase 6 (AI incident analysis) — retrieval over runbooks, validated structured output, async analysis with live progress and usage tracking, on top of Phase 5 (Redis hardening and security) — rate limiting, caching, locks, CSRF/CORS, readiness and graceful shutdown, on top of Phase 4 (realtime and operational data) — live incident pages, logs, deployments, metrics and a seeded demo, on top of Phase 3 (async backbone) — events are published after commit and processed by a separate worker with retries and idempotency, on top of Phase 2 (core domain) — incidents with a strict lifecycle, timeline, audit trail and optimistic concurrency, on top of auth and RBAC.
 
 ## Structure
 
@@ -35,6 +35,18 @@ After `pnpm db:seed`, sign in as one of these (password `demo-password-1`) and u
 | ADMIN    | demo-admin@opsflow.demo    |
 | ENGINEER | demo-engineer@opsflow.demo |
 | VIEWER   | demo-viewer@opsflow.demo   |
+
+## Connect a real service
+
+OpsFlow receives alerts, deployments, logs and metrics from your own systems with **API keys** (Integrations page). Full guide: [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md).
+
+To see it with no wiring, run the demo shop and crash it (OpsFlow running and seeded):
+
+```bash
+pnpm demo:shop                                   # a small website that reports to OpsFlow
+curl -X POST localhost:5050/admin/deploy-bad     # a bad deploy: within seconds an incident opens by itself
+curl -X POST localhost:5050/admin/rollback       # fix it
+```
 
 ## AI analysis
 

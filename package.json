@@ -16,7 +16,8 @@
     "test": "pnpm --filter @opsflow/backend test",
     "db:generate": "pnpm --filter @opsflow/backend db:generate",
     "db:migrate": "pnpm --filter @opsflow/backend db:migrate",
-    "db:seed": "pnpm --filter @opsflow/backend db:seed"
+    "db:seed": "pnpm --filter @opsflow/backend db:seed",
+    "demo:shop": "node examples/demo-shop/server.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",

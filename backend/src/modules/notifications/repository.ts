@@ -1,4 +1,4 @@
-import { and, count, desc, eq, inArray, isNull } from 'drizzle-orm';
+import { and, count, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import type { Executor } from '../../db/client';
 import { notifications, organizationMembers } from '../../db/schema';
 import { offsetOf, type Pagination } from '../../lib/pagination';
@@ -31,6 +31,8 @@ export const notificationsRepository = {
         and(
           eq(organizationMembers.organizationId, organizationId),
           inArray(organizationMembers.userId, userIds),
+          // a key's service account is never a notification recipient
+          sql`${organizationMembers.userId} IN (SELECT id FROM users WHERE is_bot = false)`,
         ),
       );
     return new Set(rows.map((r) => r.userId));

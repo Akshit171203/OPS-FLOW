@@ -23,7 +23,7 @@ export const membersService = {
   async add(actor: AuthContext, input: { email: string; role: Role }) {
     assertCanGrant(actor, input.role);
     const user = await repo.findUserByEmail(db, input.email.trim().toLowerCase());
-    if (!user) throw new NotFoundError('No user with that email', 'USER_NOT_FOUND');
+    if (!user || user.isBot) throw new NotFoundError('No user with that email', 'USER_NOT_FOUND');
     const existing = await repo.findMemberByUser(db, actor.organizationId, user.id);
     if (existing) throw new ConflictError('User is already a member', 'ALREADY_MEMBER');
     const member = await repo.insert(db, {

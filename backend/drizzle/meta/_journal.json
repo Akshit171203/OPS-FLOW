@@ -43,6 +43,13 @@
       "when": 1791061116136,
       "tag": "0005_ai_analysis",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791071403913,
+      "tag": "0006_integrations",
+      "breakpoints": true
     }
   ]
 }

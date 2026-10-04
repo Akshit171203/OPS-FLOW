@@ -2,6 +2,8 @@ import { Router } from 'express';
 import { contextFrom } from '../../lib/context';
 import { parse } from '../../lib/validate';
 import { requireAuth, requireRole } from '../../middleware/auth';
+import { ingestAuth } from '../../middleware/ingestAuth';
+import { resolveServiceRefs } from '../../lib/serviceRefs';
 import { IdParamsSchema } from '../projects/schemas';
 import {
   CreateDeploymentSchema,
@@ -13,10 +15,11 @@ import { deploymentsService } from './service';
 
 export const deploymentsRouter = Router();
 
-deploymentsRouter.post('/', ...requireRole('ENGINEER'), async (req, res) => {
+deploymentsRouter.post('/', ingestAuth('ingest'), async (req, res) => {
+  const body = await resolveServiceRefs(req.auth!.organizationId, req.body, req.apiKey);
   const deployment = await deploymentsService.create(
     contextFrom(req),
-    parse(CreateDeploymentSchema, req.body),
+    parse(CreateDeploymentSchema, body),
   );
   res.status(201).json({ deployment });
 });
