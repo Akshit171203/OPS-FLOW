@@ -10,13 +10,13 @@ Your services connect with an API key and a webhook. A monitoring alert (Alertma
 
 ## Screenshots
 
-![The dashboard in the dark theme: status summary, 7-day incident chart, service health, deployments and activity](docs/images/dashboard.png)
+![The dashboard: status, key figures, 7-day incident chart, service health, deployments and activity](docs/images/dashboard.png)
 
-| Incident page                                                                                | Sign-in                                                               | Light theme                                                          |
-| -------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| ![An incident with its lifecycle, timeline and AI analysis](docs/images/incident-detail.png) | ![Sign-in with an auto-advancing product tour](docs/images/login.png) | ![The dashboard in the light theme](docs/images/dashboard-light.png) |
+| Incident page                                                                                | Sign-in                                                               | Light theme                                                        |
+| -------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| ![An incident with its lifecycle, timeline and AI analysis](docs/images/incident-detail.png) | ![Sign-in with an auto-advancing product tour](docs/images/login.png) | ![The dashboard in the dark theme](docs/images/dashboard-dark.png) |
 
-Dark and light themes follow the system setting, and `Ctrl/Cmd+K` opens a command palette to jump to pages and incidents. The incident above came from **Simulate payment outage** on the seeded demo data; its analysis is from the built-in offline analyzer, which the page labels as such.
+Light and dark themes (toggle in the top bar), and `Ctrl/Cmd+K` opens a command palette to jump to pages and incidents. The incident above came from **Simulate payment outage** on the seeded demo data; its analysis is from the built-in offline analyzer, which the page labels as such.
 
 ## What it does
 

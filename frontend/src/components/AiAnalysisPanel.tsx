@@ -33,10 +33,7 @@ function ConfidenceBar({ value, label }: { value: number; label: string }) {
         aria-valuemax={100}
         className="h-1.5 w-28 overflow-hidden rounded-full bg-skeleton"
       >
-        <div
-          className="h-full rounded-full bg-gradient-to-r from-accent-600 to-[#8b5cf6]"
-          style={{ width: `${pct}%` }}
-        />
+        <div className="h-full rounded-full bg-accent-600" style={{ width: `${pct}%` }} />
       </div>
       <span className="w-10 text-xs tabular-nums text-ink-muted">{pct}%</span>
     </div>
@@ -206,19 +203,12 @@ export function AiAnalysisPanel({ incidentId, canRun }: { incidentId: string; ca
 
   const running = isActive(latest);
   return (
-    <section
-      aria-labelledby="ai-heading"
-      className="card-surface relative overflow-hidden rounded-2xl p-5"
-    >
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-accent-600/15 blur-3xl"
-      />
+    <section aria-labelledby="ai-heading" className="card-surface relative rounded-xl p-5">
       <div className="relative mb-4 flex items-center justify-between gap-3">
         <h2 id="ai-heading" className="relative flex items-center gap-2 text-base font-semibold">
           <span
             aria-hidden="true"
-            className="grid h-7 w-7 place-items-center rounded-lg bg-gradient-to-br from-accent-600 to-[#8b5cf6] text-white shadow-[0_0_18px_-4px_rgb(99_91_255/0.8)]"
+            className="grid h-7 w-7 place-items-center rounded-lg bg-surface-2 text-accent-ink"
           >
             <Sparkles className="h-3.5 w-3.5" />
           </span>

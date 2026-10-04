@@ -27,7 +27,7 @@ export function LifecycleStepper({
             <span
               className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset ${
                 active
-                  ? 'bg-accent-600 text-white shadow-[0_0_18px_-4px_rgb(99_91_255/0.9)] ring-white/10'
+                  ? 'bg-accent-600 text-white ring-transparent'
                   : done
                     ? 'bg-resolved-bg text-resolved-fg ring-resolved-fg/20'
                     : 'text-ink-subtle ring-line'

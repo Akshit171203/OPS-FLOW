@@ -12,7 +12,7 @@ import {
 import { api } from '@/lib/api';
 import { formatDate, percent } from '@/lib/format';
 import { useFetch } from '@/lib/useFetch';
-import { Card, EmptyState, ErrorState, Skeleton } from './feedback';
+import { EmptyState, ErrorState, Panel, Skeleton } from './feedback';
 import { useToast, messageOf } from './toast';
 import { Button, Pill, ServiceStatusBadge, secondaryButtonClass } from './ui';
 
@@ -125,17 +125,17 @@ export function LogsPanel({
   }
 
   return (
-    <section aria-labelledby="logs-h">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <h2 id="logs-h" className="text-base font-semibold">
-          Logs
-        </h2>
+    <Panel
+      headingId="logs-h"
+      title="Logs"
+      description="This service's logs from shortly before the incident"
+      action={
         <label className="flex items-center gap-2 text-sm">
           <span className="text-ink-muted">Level</span>
           <select
             value={level}
             onChange={(e) => setLevel(e.target.value as LogLevel | '')}
-            className="rounded-md border border-line-strong bg-surface px-2 py-1.5 text-sm"
+            className="rounded-lg border border-line-strong bg-surface px-2.5 py-1.5 text-sm"
           >
             <option value="">All</option>
             {logLevels.map((l) => (
@@ -143,25 +143,30 @@ export function LogsPanel({
             ))}
           </select>
         </label>
-      </div>
+      }
+    >
       {error && !items.length ? (
-        <ErrorState message={error} onRetry={() => load()} />
+        <div className="p-5">
+          <ErrorState message={error} onRetry={() => load()} />
+        </div>
       ) : loading && items.length === 0 ? (
-        <div role="status" aria-busy="true" className="space-y-2">
+        <div role="status" aria-busy="true" className="space-y-2 p-5">
           <span className="sr-only">Loading logs…</span>
           {Array.from({ length: 4 }, (_, i) => (
             <Skeleton key={i} className="h-7" />
           ))}
         </div>
       ) : items.length === 0 ? (
-        <EmptyState
-          title={level ? `No ${level} logs for this incident` : 'No logs linked to this incident'}
-          description="Logs sent with this incident's id show up here."
-        />
+        <div className="p-5">
+          <EmptyState
+            title={level ? `No ${level} logs for this incident` : 'No logs linked to this incident'}
+            description="Logs sent with this incident's id show up here."
+          />
+        </div>
       ) : (
-        <Card className="max-h-96 overflow-auto">
+        <div className="max-h-96 overflow-auto">
           <table className="w-full min-w-[32rem] text-left font-mono text-xs">
-            <thead className="sticky top-0 bg-surface text-[11px] uppercase tracking-wide text-ink-muted shadow-[0_1px_0_var(--color-line)]">
+            <thead className="sticky top-0 bg-surface text-[11px] uppercase tracking-wide text-ink-subtle shadow-[0_1px_0_var(--color-line)]">
               <tr>
                 <th scope="col" className="px-3 py-2 font-medium">
                   Time
@@ -188,12 +193,12 @@ export function LogsPanel({
               ))}
             </tbody>
           </table>
-        </Card>
+        </div>
       )}
       {cursor && (
         <Button
           variant="secondary"
-          className="mt-2"
+          className="m-4"
           onClick={loadMore}
           loading={loadingMore}
           loadingText="Loading…"
@@ -201,7 +206,7 @@ export function LogsPanel({
           Load more
         </Button>
       )}
-    </section>
+    </Panel>
   );
 }
 
@@ -248,29 +253,34 @@ export function DeploymentsPanel({
   }
 
   return (
-    <section aria-labelledby="deps-h">
-      <h2 id="deps-h" className="mb-3 text-base font-semibold">
-        Recent deployments
-      </h2>
+    <Panel
+      headingId="deps-h"
+      title="Deployments"
+      description="Releases around the time the incident started"
+    >
       {error && !data ? (
-        <ErrorState message={error} onRetry={reload} />
+        <div className="p-5">
+          <ErrorState message={error} onRetry={reload} />
+        </div>
       ) : loading && !data ? (
-        <div role="status" aria-busy="true">
+        <div role="status" aria-busy="true" className="p-5">
           <span className="sr-only">Loading deployments…</span>
           <Skeleton className="h-20" />
         </div>
       ) : data?.deployments.length === 0 ? (
-        <EmptyState
-          title="No recent deployments"
-          description={`Nothing was deployed to this service in the ${data.windowHours} hours before the incident.`}
-        />
+        <div className="p-5">
+          <EmptyState
+            title="No recent deployments"
+            description={`Nothing was deployed to this service in the ${data.windowHours} hours before the incident.`}
+          />
+        </div>
       ) : (
-        <Card>
+        <div>
           <ul className="divide-y divide-line">
             {data?.deployments.map((d) => (
               <li
                 key={d.id}
-                className="flex flex-wrap items-center justify-between gap-3 p-3 text-sm"
+                className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5 text-sm"
               >
                 <div className="min-w-0">
                   <p className="flex flex-wrap items-center gap-1.5 font-medium">
@@ -296,8 +306,8 @@ export function DeploymentsPanel({
               </li>
             ))}
           </ul>
-        </Card>
+        </div>
       )}
-    </section>
+    </Panel>
   );
 }

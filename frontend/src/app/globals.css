@@ -15,21 +15,21 @@
   --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
   /* one accent: indigo-violet. 600/700 are the button fill and its hover, the same in both themes */
-  --color-accent-600: #5850ec;
-  --color-accent-700: #4a43d6;
-  --color-accent-soft: #eef0ff;
-  --color-accent-ink: #4338ca;
+  --color-accent-600: #2f5bea;
+  --color-accent-700: #2549c9;
+  --color-accent-soft: #eaf0ff;
+  --color-accent-ink: #1f3fb8;
 
   /* neutrals */
-  --color-canvas: #f6f7f9;
+  --color-canvas: #f7f7f8;
   --color-surface: #ffffff;
-  --color-surface-2: #f1f3f7;
-  --color-skeleton: #e4e7ee;
-  --color-line: #e3e6ec;
-  --color-line-strong: #cdd2dc;
-  --color-ink: #0b0d12;
-  --color-ink-muted: #474e5f;
-  --color-ink-subtle: #5d6475;
+  --color-surface-2: #f2f2f4;
+  --color-skeleton: #e8e8ec;
+  --color-line: #e6e6ea;
+  --color-line-strong: #cfcfd6;
+  --color-ink: #0a0a0b;
+  --color-ink-muted: #52525b;
+  --color-ink-subtle: #6b6b75;
 
   /* severity SEV1 (worst) to SEV4 */
   --color-sev1-bg: #fee2e2;
@@ -115,18 +115,18 @@
 .dark {
   color-scheme: dark;
 
-  --color-accent-soft: #1d1c45;
-  --color-accent-ink: #b4b9ff;
+  --color-accent-soft: #13224d;
+  --color-accent-ink: #97b0ff;
 
-  --color-canvas: #07080b;
-  --color-surface: #0e1015;
-  --color-surface-2: #161923;
-  --color-skeleton: #1b1f2b;
-  --color-line: #20242f;
-  --color-line-strong: #323849;
-  --color-ink: #eef0f5;
-  --color-ink-muted: #a6acbb;
-  --color-ink-subtle: #8f95a6;
+  --color-canvas: #09090b;
+  --color-surface: #111113;
+  --color-surface-2: #18181b;
+  --color-skeleton: #1f1f23;
+  --color-line: #222226;
+  --color-line-strong: #34343a;
+  --color-ink: #fafafa;
+  --color-ink-muted: #a1a1aa;
+  --color-ink-subtle: #8e8e99;
 
   --color-sev1-bg: #3b1219;
   --color-sev1-fg: #fda4af;
@@ -176,19 +176,19 @@
 /* Forces the light token set on an element, whatever the page theme is (used by the sign-in form). */
 .theme-light {
   color-scheme: light;
-  --color-accent-600: #5850ec;
-  --color-accent-700: #4a43d6;
-  --color-accent-soft: #eef0ff;
-  --color-accent-ink: #4338ca;
-  --color-canvas: #f6f7f9;
+  --color-accent-600: #2f5bea;
+  --color-accent-700: #2549c9;
+  --color-accent-soft: #eaf0ff;
+  --color-accent-ink: #1f3fb8;
+  --color-canvas: #f7f7f8;
   --color-surface: #ffffff;
-  --color-surface-2: #f1f3f7;
-  --color-skeleton: #e4e7ee;
-  --color-line: #e3e6ec;
-  --color-line-strong: #cdd2dc;
-  --color-ink: #0b0d12;
-  --color-ink-muted: #474e5f;
-  --color-ink-subtle: #5d6475;
+  --color-surface-2: #f2f2f4;
+  --color-skeleton: #e8e8ec;
+  --color-line: #e6e6ea;
+  --color-line-strong: #cfcfd6;
+  --color-ink: #0a0a0b;
+  --color-ink-muted: #52525b;
+  --color-ink-subtle: #6b6b75;
   --color-sev1-bg: #fee2e2;
   --color-sev1-fg: #991b1b;
   --color-sev2-bg: #ffedd5;
@@ -230,14 +230,6 @@
   --color-dot-idle: #94a3b8;
 }
 
-/* Blue brand scope for the sign-in screen: re-points the accent tokens, nothing else. */
-.auth-blue {
-  --color-accent-600: #2f5bea;
-  --color-accent-700: #2549c9;
-  --color-accent-soft: #e8eeff;
-  --color-accent-ink: #1f3fb8;
-}
-
 @layer base {
   html {
     background: var(--color-canvas);
@@ -267,45 +259,10 @@
   }
 }
 
-/* Soft aurora behind the app: two blurred colour pools and a faint grid. Purely decorative. */
-.app-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  overflow: hidden;
-  pointer-events: none;
-  background:
-    radial-gradient(60rem 32rem at 85% -10%, rgb(88 80 236 / 0.1), transparent 60%),
-    radial-gradient(50rem 28rem at -10% 110%, rgb(14 165 233 / 0.06), transparent 60%);
-}
-.dark .app-backdrop {
-  background:
-    radial-gradient(60rem 32rem at 85% -10%, rgb(99 91 255 / 0.16), transparent 60%),
-    radial-gradient(50rem 28rem at -10% 110%, rgb(14 165 233 / 0.09), transparent 60%);
-}
-.app-backdrop::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(to right, rgb(120 130 160 / 0.06) 1px, transparent 1px),
-    linear-gradient(to bottom, rgb(120 130 160 / 0.06) 1px, transparent 1px);
-  background-size: 44px 44px;
-  mask-image: radial-gradient(ellipse at 50% 0%, #000 0%, transparent 70%);
-}
-
-/* Cards: a hairline border plus a faint top highlight, which is what makes dark surfaces feel lifted. */
+/* Cards: a flat surface with a hairline border. No glow, no gradient. */
 .card-surface {
   background: var(--color-surface);
   border: 1px solid var(--color-line);
-  box-shadow:
-    0 1px 2px rgb(15 23 42 / 0.04),
-    inset 0 1px 0 rgb(255 255 255 / 0.5);
-}
-.dark .card-surface {
-  box-shadow:
-    0 1px 2px rgb(0 0 0 / 0.4),
-    inset 0 1px 0 rgb(255 255 255 / 0.035);
 }
 
 .skeleton-shimmer {

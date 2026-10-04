@@ -54,7 +54,7 @@ export function AuthForm({
       <AuthCarousel />
 
       {/* The form side stays light in either theme, like the rest of the sign-in screen's contrast */}
-      <main className="theme-light auth-blue flex min-h-screen flex-col justify-center bg-surface px-5 py-10 text-ink sm:px-10">
+      <main className="theme-light flex min-h-screen flex-col justify-center bg-surface px-5 py-10 text-ink sm:px-10">
         <motion.div
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}

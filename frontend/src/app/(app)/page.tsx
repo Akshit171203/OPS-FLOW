@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { AlertTriangle, ArrowUpRight, Flame, Rocket, Server, Timer } from 'lucide-react';
+import { Flame, Rocket } from 'lucide-react';
 import {
   roleRank,
   type DashboardDto,
@@ -12,15 +12,15 @@ import {
   type ServiceDto,
   type SimulateResult,
 } from '@opsflow/shared';
-import { Button, linkClass, secondaryButtonClass } from '@/components/ui';
+import { Button, buttonClass, linkClass } from '@/components/ui';
 import {
-  Card,
   EmptyState,
   ErrorState,
   LoadingRegion,
-  SectionHeading,
+  PageHeader,
+  Panel,
   Skeleton,
-  StatCard,
+  StatStrip,
 } from '@/components/feedback';
 import { AreaTrend } from '@/components/charts';
 import { StatusDot } from '@/components/StatusDot';
@@ -37,15 +37,10 @@ import { usePageTitle } from '@/lib/usePageTitle';
 function DashboardSkeleton() {
   return (
     <LoadingRegion label="Loading dashboard">
-      <Skeleton className="h-32" />
-      <div className="mt-4 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-        {Array.from({ length: 4 }, (_, i) => (
-          <Skeleton key={i} className="h-28" />
-        ))}
-      </div>
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
-        <Skeleton className="h-64" />
-        <Skeleton className="h-64" />
+      <Skeleton className="h-28" />
+      <div className="mt-6 grid gap-6 lg:grid-cols-3">
+        <Skeleton className="h-72 lg:col-span-2" />
+        <Skeleton className="h-72" />
       </div>
     </LoadingRegion>
   );
@@ -110,43 +105,34 @@ export default function DashboardPage() {
   const quiet =
     d && d.openIncidents === 0 && d.recentActivity.length === 0 && d.recentDeployments.length === 0;
   const allClear = d && d.openIncidents === 0 && d.degradedServices.length === 0;
+  const allServices = services.data?.items ?? [];
+  const healthy = allServices.filter((s) => s.status === 'HEALTHY').length;
+  const canCreate = roleRank[me.role] >= roleRank.ENGINEER;
 
   return (
     <>
-      <section
-        aria-labelledby="hero-h"
-        className="card-surface relative mb-6 overflow-hidden rounded-2xl p-6 sm:p-7"
-      >
-        <div
-          aria-hidden="true"
-          className={`pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full blur-3xl ${
-            d && !allClear ? 'bg-dot-bad/20' : 'bg-accent-600/20'
-          }`}
-        />
-        <div className="relative flex flex-wrap items-center justify-between gap-4">
-          <div className="min-w-0">
-            <p className="inline-flex items-center gap-2 text-sm font-medium text-ink-muted">
-              <StatusDot
-                status={
-                  !d ? 'UNKNOWN' : allClear ? 'HEALTHY' : d.criticalIncidents ? 'DOWN' : 'DEGRADED'
-                }
-              />
-              {me.organization.name}
-            </p>
-            <h1 id="hero-h" className="mt-1.5 text-3xl font-semibold tracking-tight">
+      <PageHeader
+        title="Overview"
+        description={
+          <span className="inline-flex flex-wrap items-center gap-x-2.5 gap-y-1">
+            <StatusDot
+              status={
+                !d ? 'UNKNOWN' : allClear ? 'HEALTHY' : d.criticalIncidents ? 'DOWN' : 'DEGRADED'
+              }
+            />
+            <span className="font-medium text-ink">
               {!d
-                ? 'Dashboard'
+                ? 'Loading…'
                 : allClear
                   ? 'All systems operational'
                   : `${d.openIncidents} open ${d.openIncidents === 1 ? 'incident needs' : 'incidents need'} attention`}
-            </h1>
-            <p className="mt-1.5 text-sm text-ink-muted">
-              {d
-                ? `${d.degradedServices.length} degraded or down · ${weekTotal} incident${weekTotal === 1 ? '' : 's'} in the last 7 days`
-                : 'Loading the latest picture…'}
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
+            </span>
+            <span aria-hidden="true">·</span>
+            <span>{me.organization.name}</span>
+          </span>
+        }
+        actions={
+          <>
             {isAdmin && (
               <Button
                 variant="secondary"
@@ -155,16 +141,17 @@ export default function DashboardPage() {
                 loadingText="Simulating…"
               >
                 <Flame className="h-4 w-4" aria-hidden="true" />
-                Simulate payment outage
+                Simulate outage
               </Button>
             )}
-            <Link href="/incidents" className={secondaryButtonClass}>
-              All incidents
-              <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
-            </Link>
-          </div>
-        </div>
-      </section>
+            {canCreate && (
+              <Link href="/incidents/new" className={buttonClass}>
+                New incident
+              </Link>
+            )}
+          </>
+        }
+      />
 
       {dash.error && !d ? (
         <ErrorState message={dash.error} onRetry={dash.reload} />
@@ -181,169 +168,179 @@ export default function DashboardPage() {
           action={
             isAdmin ? (
               <Button onClick={simulate} loading={simulating} loadingText="Simulating…">
-                Simulate payment outage
+                Simulate outage
               </Button>
             ) : undefined
           }
         />
       ) : (
         <div className="space-y-6">
-          <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-            <StatCard
-              label="Open incidents"
-              value={d.openIncidents}
-              hint="Not yet resolved"
-              icon={<AlertTriangle className="h-4 w-4" />}
-              tone={d.openIncidents ? 'warning' : 'good'}
-            />
-            <StatCard
-              label="Critical (SEV1)"
-              value={d.criticalIncidents}
-              tone={d.criticalIncidents ? 'danger' : 'default'}
-              hint="Open SEV1 incidents"
-              icon={<Flame className="h-4 w-4" />}
-            />
-            <StatCard
-              label="Degraded services"
-              value={d.degradedServices.length}
-              tone={d.degradedServices.length ? 'warning' : 'good'}
-              hint="Degraded or down"
-              icon={<Server className="h-4 w-4" />}
-            />
-            <StatCard
-              label="Avg. resolution"
-              value={formatDuration(d.avgResolutionMinutes)}
-              hint="Start to resolved"
-              icon={<Timer className="h-4 w-4" />}
-            />
-          </div>
+          <StatStrip
+            items={[
+              {
+                label: 'Open incidents',
+                value: d.openIncidents,
+                hint: 'Not yet resolved',
+              },
+              {
+                label: 'Critical (SEV1)',
+                value: d.criticalIncidents,
+                hint: 'Open SEV1 incidents',
+                tone: d.criticalIncidents ? 'danger' : 'default',
+              },
+              {
+                label: 'Degraded services',
+                value: d.degradedServices.length,
+                hint: 'Degraded or down',
+                tone: d.degradedServices.length ? 'warning' : 'default',
+              },
+              {
+                label: 'Avg. resolution',
+                value: formatDuration(d.avgResolutionMinutes),
+                hint: 'Start to resolved',
+              },
+            ]}
+          />
 
-          <div className="grid gap-6 lg:grid-cols-5">
-            <section aria-labelledby="trend-h" className="min-w-0 lg:col-span-3">
-              <SectionHeading>
-                <span id="trend-h">Incidents · last 7 days</span>
-              </SectionHeading>
-              <Card className="p-4">
-                {history.data ? (
-                  <AreaTrend
-                    id="incidents-week"
-                    data={week}
-                    height={210}
-                    summary={`Incidents per day over the last 7 days: ${week.map((p) => `${p.label} ${p.value}`).join(', ')}`}
-                  />
-                ) : (
-                  <Skeleton className="h-[210px]" />
-                )}
-              </Card>
-            </section>
+          <div className="grid gap-6 lg:grid-cols-3">
+            <Panel
+              headingId="trend-h"
+              title="Incidents"
+              description={`${weekTotal} opened in the last 7 days`}
+              className="lg:col-span-2"
+              bodyClassName="p-5"
+              action={
+                <Link href="/incidents" className="text-sm text-ink-muted hover:text-ink">
+                  View all
+                </Link>
+              }
+            >
+              {history.data ? (
+                <AreaTrend
+                  id="incidents-week"
+                  data={week}
+                  height={210}
+                  summary={`Incidents per day over the last 7 days: ${week.map((p) => `${p.label} ${p.value}`).join(', ')}`}
+                />
+              ) : (
+                <Skeleton className="h-[210px]" />
+              )}
+            </Panel>
 
-            <section aria-labelledby="health-h" className="min-w-0 lg:col-span-2">
-              <SectionHeading>
-                <span id="health-h">Service health</span>
-              </SectionHeading>
-              <Card className="divide-y divide-line">
-                {!services.data ? (
-                  <div className="p-4">
-                    <Skeleton className="h-24" />
-                  </div>
-                ) : services.data.items.length === 0 ? (
-                  <p className="p-4 text-sm text-ink-muted">No services yet.</p>
-                ) : (
-                  services.data.items.slice(0, 6).map((s) => (
-                    <Link
-                      key={s.id}
-                      href={`/services/${s.id}`}
-                      className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm transition-colors first:rounded-t-xl last:rounded-b-xl hover:bg-surface-2"
-                    >
-                      <span className="flex min-w-0 items-center gap-2.5">
-                        <StatusDot status={s.status} />
-                        <span className="truncate font-medium">{s.name}</span>
-                      </span>
-                      <span className="shrink-0 text-xs uppercase tracking-wide text-ink-subtle">
-                        {s.status}
-                      </span>
-                    </Link>
-                  ))
-                )}
-              </Card>
-            </section>
+            <Panel
+              headingId="health-h"
+              title="Service health"
+              description={
+                services.data ? `${healthy} of ${allServices.length} healthy` : 'Loading…'
+              }
+              action={
+                <Link href="/services" className="text-sm text-ink-muted hover:text-ink">
+                  All services
+                </Link>
+              }
+            >
+              {!services.data ? (
+                <div className="p-5">
+                  <Skeleton className="h-24" />
+                </div>
+              ) : allServices.length === 0 ? (
+                <p className="p-5 text-sm text-ink-muted">No services yet.</p>
+              ) : (
+                <ul className="divide-y divide-line">
+                  {allServices.slice(0, 6).map((s) => (
+                    <li key={s.id}>
+                      <Link
+                        href={`/services/${s.id}`}
+                        className="flex items-center justify-between gap-3 px-5 py-3 text-sm transition-colors hover:bg-surface-2"
+                      >
+                        <span className="flex min-w-0 items-center gap-2.5">
+                          <StatusDot status={s.status} />
+                          <span className="truncate font-medium">{s.name}</span>
+                        </span>
+                        <span className="shrink-0 text-xs text-ink-subtle">
+                          {s.status.charAt(0) + s.status.slice(1).toLowerCase()}
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Panel>
           </div>
 
           <div className="grid gap-6 lg:grid-cols-2">
-            <section aria-labelledby="deploys-h" className="min-w-0">
-              <SectionHeading>
-                <span id="deploys-h">Recent deployments</span>
-              </SectionHeading>
-              <Card>
-                {d.recentDeployments.length === 0 ? (
-                  <p className="p-4 text-sm text-ink-muted">No deployments recorded.</p>
-                ) : (
-                  <ul className="divide-y divide-line">
-                    {d.recentDeployments.map((dep) => (
-                      <li key={dep.id} className="flex items-center gap-3 p-3.5 text-sm">
+            <Panel
+              headingId="deploys-h"
+              title="Recent deployments"
+              description="Latest releases across services"
+            >
+              {d.recentDeployments.length === 0 ? (
+                <p className="p-5 text-sm text-ink-muted">No deployments recorded.</p>
+              ) : (
+                <ul className="divide-y divide-line">
+                  {d.recentDeployments.map((dep) => (
+                    <li key={dep.id} className="flex items-center gap-3 px-5 py-3.5 text-sm">
+                      <span
+                        aria-hidden="true"
+                        className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-line text-ink-muted"
+                      >
+                        <Rocket className="h-4 w-4" />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-medium">
+                          {dep.serviceName}{' '}
+                          <span className="ml-1 rounded-md bg-surface-2 px-1.5 py-0.5 font-mono text-xs text-ink-muted">
+                            {dep.version}
+                          </span>
+                        </p>
+                        <p className="truncate text-xs text-ink-subtle">
+                          {dep.environment} · {dep.deployedBy}
+                        </p>
+                      </div>
+                      <span className="shrink-0 text-xs text-ink-subtle">
+                        {timeAgo(dep.deployedAt)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Panel>
+
+            <Panel
+              headingId="activity-h"
+              title="Recent activity"
+              description="What your team did, as it happened"
+            >
+              {d.recentActivity.length === 0 ? (
+                <p className="p-5 text-sm text-ink-muted">No activity yet.</p>
+              ) : (
+                <ul className="divide-y divide-line">
+                  {d.recentActivity.map((a) => {
+                    const Icon = eventIcon(a.eventType);
+                    return (
+                      <li key={a.id} className="flex items-start gap-3 px-5 py-3.5 text-sm">
                         <span
                           aria-hidden="true"
-                          className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-surface-2 text-ink-muted"
+                          className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-line text-ink-muted"
                         >
-                          <Rocket className="h-4 w-4" />
+                          <Icon className="h-4 w-4" />
                         </span>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate font-medium">
-                            {dep.serviceName}{' '}
-                            <span className="rounded bg-surface-2 px-1.5 py-0.5 font-mono text-xs text-ink-muted">
-                              {dep.version}
-                            </span>
-                          </p>
-                          <p className="truncate text-xs text-ink-subtle">
-                            {dep.environment} · {dep.deployedBy}
-                          </p>
-                        </div>
+                        <p className="min-w-0 flex-1 leading-snug">
+                          <span className="font-medium">{a.actorName}</span>{' '}
+                          <span className="text-ink-muted">{activityVerb(a.eventType)}</span>{' '}
+                          <Link href={`/incidents/${a.incidentId}`} className={linkClass}>
+                            {a.incidentTitle}
+                          </Link>
+                        </p>
                         <span className="shrink-0 text-xs text-ink-subtle">
-                          {timeAgo(dep.deployedAt)}
+                          {timeAgo(a.createdAt)}
                         </span>
                       </li>
-                    ))}
-                  </ul>
-                )}
-              </Card>
-            </section>
-
-            <section aria-labelledby="activity-h" className="min-w-0">
-              <SectionHeading>
-                <span id="activity-h">Recent activity</span>
-              </SectionHeading>
-              <Card>
-                {d.recentActivity.length === 0 ? (
-                  <p className="p-4 text-sm text-ink-muted">No activity yet.</p>
-                ) : (
-                  <ul className="divide-y divide-line">
-                    {d.recentActivity.map((a) => {
-                      const Icon = eventIcon(a.eventType);
-                      return (
-                        <li key={a.id} className="flex items-start gap-3 p-3.5 text-sm">
-                          <span
-                            aria-hidden="true"
-                            className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-accent-soft text-accent-ink"
-                          >
-                            <Icon className="h-3.5 w-3.5" />
-                          </span>
-                          <p className="min-w-0 flex-1 leading-snug">
-                            <span className="font-medium">{a.actorName}</span>{' '}
-                            <span className="text-ink-muted">{activityVerb(a.eventType)}</span>{' '}
-                            <Link href={`/incidents/${a.incidentId}`} className={linkClass}>
-                              {a.incidentTitle}
-                            </Link>
-                          </p>
-                          <span className="shrink-0 text-xs text-ink-subtle">
-                            {timeAgo(a.createdAt)}
-                          </span>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                )}
-              </Card>
-            </section>
+                    );
+                  })}
+                </ul>
+              )}
+            </Panel>
           </div>
         </div>
       )}

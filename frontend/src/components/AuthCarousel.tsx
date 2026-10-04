@@ -34,7 +34,7 @@ const SLIDE_MS = 6000;
 /* ---------- widgets: miniatures of OpsFlow's own screens, on white cards ---------- */
 
 const card =
-  'theme-light auth-blue w-[12.5rem] shrink-0 rounded-xl bg-surface p-3 pr-12 text-ink shadow-[0_10px_30px_-8px_rgb(0_0_0/0.6)] xl:w-[15rem]';
+  'theme-light w-[12.5rem] shrink-0 rounded-xl bg-surface p-3 pr-12 text-ink shadow-[0_10px_30px_-8px_rgb(0_0_0/0.6)] xl:w-[15rem]';
 
 function CardTitle({ title, sub }: { title: string; sub?: string }) {
   return (

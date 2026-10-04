@@ -16,7 +16,7 @@ import {
   Card,
   ErrorState,
   LoadingRegion,
-  SectionHeading,
+  Panel,
   Skeleton,
   SkeletonLines,
 } from '@/components/feedback';
@@ -40,13 +40,6 @@ import { useMe } from '@/lib/me-context';
 import { useIncidentRoom, useReconnect, useSocketEvent } from '@/lib/socket';
 import { useFetch } from '@/lib/useFetch';
 import { usePageTitle } from '@/lib/usePageTitle';
-
-const sevBand = {
-  SEV1: 'from-sev1-fg',
-  SEV2: 'from-sev2-fg',
-  SEV3: 'from-sev3-fg',
-  SEV4: 'from-sev4-fg',
-} as const;
 
 function describeEvent(e: IncidentEventDto, nameOf: (id: unknown) => string): string {
   const m = e.metadata as Record<string, unknown> & {
@@ -189,11 +182,7 @@ export default function IncidentDetailPage() {
       </p>
 
       {/* The header stays in view on wide screens so status and actions are always at hand */}
-      <header className="card-surface relative z-10 mb-6 overflow-hidden rounded-2xl p-5 lg:sticky lg:top-16">
-        <div
-          aria-hidden="true"
-          className={`absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r to-transparent ${sevBand[incident.severity]}`}
-        />
+      <header className="card-surface relative z-10 mb-6 rounded-xl p-5 lg:sticky lg:top-16">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
             <h1 className="text-xl font-semibold tracking-tight sm:text-[1.6rem]">
@@ -266,16 +255,20 @@ export default function IncidentDetailPage() {
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="min-w-0 space-y-6 lg:col-span-2">
-          {incident.description && (
-            <Card className="p-4">
-              <h2 className="mb-1 text-sm font-semibold text-ink-muted">Description</h2>
-              <p className="whitespace-pre-wrap text-sm">{incident.description}</p>
-            </Card>
-          )}
-          <Card className="p-4">
-            <h2 className="mb-2 text-sm font-semibold text-ink-muted">Service health</h2>
-            <MetricsLine serviceId={incident.serviceId} refreshKey={refreshKey} />
-          </Card>
+          <Panel
+            headingId="details-h"
+            title="Details"
+            description="What is happening and how the service looks right now"
+          >
+            {incident.description && (
+              <p className="whitespace-pre-wrap border-b border-line px-5 py-4 text-sm leading-relaxed">
+                {incident.description}
+              </p>
+            )}
+            <div className="px-5 py-4">
+              <MetricsLine serviceId={incident.serviceId} refreshKey={refreshKey} />
+            </div>
+          </Panel>
           <AiAnalysisPanel incidentId={id} canRun={canWrite} />
           <LogsPanel
             serviceId={incident.serviceId}
@@ -292,76 +285,73 @@ export default function IncidentDetailPage() {
         </div>
 
         <aside className="min-w-0 space-y-6" aria-label="Activity">
-          <section aria-labelledby="timeline-h">
-            <SectionHeading>
-              <span id="timeline-h">Timeline</span>
-            </SectionHeading>
-            <Card className="p-4">
-              <ol className="relative space-y-5 before:absolute before:bottom-3 before:left-[13px] before:top-3 before:w-px before:bg-line-strong">
-                {events.map((e) => {
-                  const EventIcon = eventIcon(e.eventType);
-                  return (
-                    <li key={e.id} className="relative flex gap-3 text-sm">
-                      <span
-                        aria-hidden="true"
-                        className="relative z-10 grid h-7 w-7 shrink-0 place-items-center rounded-full border border-line-strong bg-surface text-accent-ink"
-                      >
-                        <EventIcon className="h-3.5 w-3.5" />
-                      </span>
-                      <div className="min-w-0 pt-0.5">
-                        <p className="leading-snug">
-                          <strong className="font-medium">{e.actor.name}</strong>{' '}
-                          <span className="text-ink-muted">{describeEvent(e, nameOf)}</span>
-                        </p>
-                        <p
-                          className="mt-0.5 text-xs text-ink-subtle"
-                          title={formatDate(e.createdAt)}
-                        >
-                          {timeAgo(e.createdAt)}
-                        </p>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ol>
-            </Card>
-          </section>
+          <Panel
+            headingId="timeline-h"
+            title="Timeline"
+            description="Every change, as it happened"
+            bodyClassName="p-5"
+          >
+            <ol className="relative space-y-5 before:absolute before:bottom-3 before:left-[13px] before:top-3 before:w-px before:bg-line-strong">
+              {events.map((e) => {
+                const EventIcon = eventIcon(e.eventType);
+                return (
+                  <li key={e.id} className="relative flex gap-3 text-sm">
+                    <span
+                      aria-hidden="true"
+                      className="relative z-10 grid h-7 w-7 shrink-0 place-items-center rounded-full border border-line-strong bg-surface text-accent-ink"
+                    >
+                      <EventIcon className="h-3.5 w-3.5" />
+                    </span>
+                    <div className="min-w-0 pt-0.5">
+                      <p className="leading-snug">
+                        <strong className="font-medium">{e.actor.name}</strong>{' '}
+                        <span className="text-ink-muted">{describeEvent(e, nameOf)}</span>
+                      </p>
+                      <p className="mt-0.5 text-xs text-ink-subtle" title={formatDate(e.createdAt)}>
+                        {timeAgo(e.createdAt)}
+                      </p>
+                    </div>
+                  </li>
+                );
+              })}
+            </ol>
+          </Panel>
 
-          <section aria-labelledby="comments-h">
-            <SectionHeading>
-              <span id="comments-h">Comments</span>
-            </SectionHeading>
-            <div className="space-y-3">
-              {comments.length === 0 && <p className="text-sm text-ink-muted">No comments yet.</p>}
-              {comments.map((c) => (
-                <Card key={c.id} className="p-3 text-sm">
-                  <p className="whitespace-pre-wrap">{c.body}</p>
-                  <p className="mt-1 text-xs text-ink-subtle">
-                    {c.author.name} · {timeAgo(c.createdAt)}
-                  </p>
-                </Card>
-              ))}
-              {canWrite && (
-                <form onSubmit={addComment} className="space-y-2">
-                  <label className="sr-only" htmlFor="new-comment">
-                    New comment
-                  </label>
-                  <textarea
-                    id="new-comment"
-                    value={comment}
-                    onChange={(e) => setComment(e.target.value)}
-                    rows={3}
-                    maxLength={5000}
-                    placeholder="Add a comment…"
-                    className={inputClass}
-                  />
-                  <Button disabled={!comment.trim()} loading={busy} loadingText="Saving…">
-                    Add comment
-                  </Button>
-                </form>
-              )}
-            </div>
-          </section>
+          <Panel
+            headingId="comments-h"
+            title="Comments"
+            description="Discuss the incident with your team"
+            bodyClassName="space-y-4 p-5"
+          >
+            {comments.length === 0 && <p className="text-sm text-ink-muted">No comments yet.</p>}
+            {comments.map((c) => (
+              <div key={c.id} className="rounded-lg bg-surface-2 p-3 text-sm">
+                <p className="whitespace-pre-wrap">{c.body}</p>
+                <p className="mt-1.5 text-xs text-ink-subtle">
+                  {c.author.name} · {timeAgo(c.createdAt)}
+                </p>
+              </div>
+            ))}
+            {canWrite && (
+              <form onSubmit={addComment} className="space-y-2">
+                <label className="sr-only" htmlFor="new-comment">
+                  New comment
+                </label>
+                <textarea
+                  id="new-comment"
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  rows={3}
+                  maxLength={5000}
+                  placeholder="Add a comment…"
+                  className={inputClass}
+                />
+                <Button disabled={!comment.trim()} loading={busy} loadingText="Saving…">
+                  Add comment
+                </Button>
+              </form>
+            )}
+          </Panel>
         </aside>
       </div>
     </article>

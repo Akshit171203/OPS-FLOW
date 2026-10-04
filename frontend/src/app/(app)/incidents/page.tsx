@@ -271,7 +271,7 @@ export default function IncidentsPage() {
                       <span
                         aria-hidden="true"
                         title={i.assignee.name}
-                        className="ml-1 grid h-6 w-6 place-items-center rounded-full bg-gradient-to-br from-accent-600 to-[#8b5cf6] text-[10px] font-semibold text-white"
+                        className="ml-1 grid h-6 w-6 place-items-center rounded-full bg-ink text-[10px] font-semibold text-canvas"
                       >
                         {i.assignee.name
                           .split(/\s+/)

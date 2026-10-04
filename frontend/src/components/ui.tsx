@@ -66,8 +66,9 @@ export const Pill = ({
 
 const buttonBase =
   'inline-flex items-center justify-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium transition duration-150 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-60';
-export const buttonClass = `${buttonBase} bg-gradient-to-b from-accent-600 to-accent-700 text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.2),0_6px_16px_-8px_rgb(88_80_236/0.8)] hover:brightness-110`;
-export const secondaryButtonClass = `${buttonBase} border border-line-strong bg-surface text-ink shadow-sm hover:bg-surface-2`;
+// Primary is solid ink (black on light, white on dark), the same as the sign-in button. Accent colour is kept for links and focus.
+export const buttonClass = `${buttonBase} bg-ink text-canvas hover:opacity-85`;
+export const secondaryButtonClass = `${buttonBase} border border-line-strong bg-surface text-ink hover:bg-surface-2`;
 export const linkClass =
   'text-accent-ink underline decoration-accent-ink/30 underline-offset-2 transition hover:decoration-accent-ink';
 

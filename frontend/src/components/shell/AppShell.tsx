@@ -34,9 +34,7 @@ function NavLinks({ onNavigate, isAdmin }: { onNavigate?: () => void; isAdmin: b
   const pathname = usePathname();
   return (
     <nav aria-label="Main" className="flex-1 space-y-0.5 px-3">
-      <p className="px-3 pb-2 pt-1 text-[11px] font-semibold uppercase tracking-wider text-ink-subtle">
-        Workspace
-      </p>
+      <p className="px-3 pb-2 pt-1 text-xs font-medium text-ink-subtle">Workspace</p>
       {NAV.filter((item) => !('adminOnly' in item) || isAdmin).map((item) => {
         const active =
           'exact' in item && item.exact
@@ -56,19 +54,13 @@ function NavLinks({ onNavigate, isAdmin }: { onNavigate?: () => void; isAdmin: b
               <motion.span
                 layoutId="nav-active"
                 aria-hidden="true"
-                className="absolute inset-0 rounded-lg bg-surface-2 ring-1 ring-inset ring-line-strong/60"
+                className="absolute inset-0 rounded-lg bg-surface-2"
                 transition={{ type: 'spring', stiffness: 500, damping: 40 }}
-              />
-            )}
-            {active && (
-              <span
-                aria-hidden="true"
-                className="absolute -left-3 top-2 h-5 w-[3px] rounded-r-full bg-gradient-to-b from-accent-600 to-[#8b5cf6]"
               />
             )}
             <Icon
               name={item.icon}
-              className={`relative h-[18px] w-[18px] transition-colors ${active ? 'text-accent-ink' : 'group-hover:text-ink'}`}
+              className={`relative h-[18px] w-[18px] transition-colors ${active ? 'text-ink' : 'group-hover:text-ink'}`}
             />
             <span className="relative">{item.label}</span>
           </Link>
@@ -89,7 +81,7 @@ const initials = (name: string) =>
 const Avatar = ({ name, className = 'h-8 w-8 text-xs' }: { name: string; className?: string }) => (
   <span
     aria-hidden="true"
-    className={`grid shrink-0 place-items-center rounded-full bg-gradient-to-br from-accent-600 to-[#8b5cf6] font-semibold text-white ${className}`}
+    className={`grid shrink-0 place-items-center rounded-full bg-ink font-semibold text-canvas ${className}`}
   >
     {initials(name)}
   </span>
@@ -97,10 +89,10 @@ const Avatar = ({ name, className = 'h-8 w-8 text-xs' }: { name: string; classNa
 
 function OrgFooter({ me }: { me: MeResponse }) {
   return (
-    <div className="m-3 flex items-center gap-3 rounded-xl border border-line bg-surface-2/60 p-3">
+    <div className="flex items-center gap-3 border-t border-line p-4">
       <span
         aria-hidden="true"
-        className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-surface text-sm font-semibold text-accent-ink ring-1 ring-line-strong"
+        className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-ink text-sm font-semibold text-canvas"
       >
         {me.organization.name.charAt(0).toUpperCase()}
       </span>
@@ -220,7 +212,7 @@ export function AppShell({
       </a>
 
       {/* Desktop sidebar */}
-      <aside className="fixed inset-y-0 left-0 z-20 hidden w-64 flex-col border-r border-line bg-surface/70 backdrop-blur-xl lg:flex">
+      <aside className="fixed inset-y-0 left-0 z-20 hidden w-64 flex-col border-r border-line bg-surface lg:flex">
         <Brand />
         <NavLinks isAdmin={isAdmin} />
         <OrgFooter me={me} />
@@ -268,7 +260,7 @@ export function AppShell({
       </AnimatePresence>
 
       <div className="lg:pl-64">
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-line bg-canvas/70 px-3 backdrop-blur-xl sm:px-6">
+        <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-line bg-canvas/85 px-3 backdrop-blur-md sm:px-6">
           <button
             ref={openerRef}
             onClick={() => setNavOpen(true)}
@@ -285,7 +277,7 @@ export function AppShell({
           <button
             onClick={() => setPaletteOpen(true)}
             aria-label="Open command palette"
-            className="group ml-1 hidden h-9 w-full max-w-sm items-center gap-2.5 rounded-lg border border-line bg-surface/60 px-3 text-sm text-ink-subtle transition hover:border-line-strong hover:text-ink-muted sm:flex"
+            className="group ml-1 hidden h-9 w-full max-w-sm items-center gap-2.5 rounded-lg border border-line bg-surface px-3 text-sm text-ink-subtle transition hover:border-line-strong hover:text-ink-muted sm:flex"
           >
             <Search className="h-4 w-4" aria-hidden="true" />
             <span className="flex-1 text-left">Search or jump to…</span>

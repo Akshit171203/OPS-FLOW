@@ -37,6 +37,40 @@ export function Card({ className = '', children, ...rest }: React.HTMLAttributes
   );
 }
 
+/** A card with a header: a title, an optional one-line description, and an optional action on the right. */
+export function Panel({
+  title,
+  description,
+  action,
+  children,
+  className = '',
+  bodyClassName = '',
+  headingId,
+}: {
+  title: React.ReactNode;
+  description?: React.ReactNode;
+  action?: React.ReactNode;
+  children: React.ReactNode;
+  className?: string;
+  bodyClassName?: string;
+  headingId?: string;
+}) {
+  return (
+    <section aria-labelledby={headingId} className={`card-surface min-w-0 rounded-xl ${className}`}>
+      <header className="flex items-start justify-between gap-3 border-b border-line px-5 py-4">
+        <div className="min-w-0">
+          <h2 id={headingId} className="text-[15px] font-semibold leading-tight text-ink">
+            {title}
+          </h2>
+          {description && <p className="mt-1 text-[13px] text-ink-subtle">{description}</p>}
+        </div>
+        {action}
+      </header>
+      <div className={bodyClassName}>{children}</div>
+    </section>
+  );
+}
+
 export function SectionHeading({
   children,
   action,
@@ -46,7 +80,7 @@ export function SectionHeading({
 }) {
   return (
     <div className="mb-3 flex items-center justify-between gap-3">
-      <h2 className="text-sm font-semibold uppercase tracking-wider text-ink-subtle">{children}</h2>
+      <h2 className="text-[15px] font-semibold text-ink">{children}</h2>
       {action}
     </div>
   );
@@ -62,12 +96,12 @@ export function PageHeader({
   actions?: React.ReactNode;
 }) {
   return (
-    <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
+    <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
       <div className="min-w-0">
-        <h1 className="text-[1.65rem] font-semibold leading-tight tracking-tight text-ink">
+        <h1 className="text-[1.75rem] font-semibold leading-tight tracking-tight text-ink">
           {title}
         </h1>
-        {description && <p className="mt-1 text-sm text-ink-muted">{description}</p>}
+        {description && <p className="mt-1.5 text-sm text-ink-muted">{description}</p>}
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
     </div>
@@ -84,7 +118,7 @@ export function EmptyState({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="rounded-xl border border-dashed border-line-strong bg-surface/60 px-6 py-12 text-center backdrop-blur">
+    <div className="rounded-xl border border-dashed border-line-strong bg-surface px-6 py-14 text-center">
       <p className="font-medium text-ink">{title}</p>
       {description && <p className="mx-auto mt-1 max-w-md text-sm text-ink-muted">{description}</p>}
       {action && <div className="mt-4 flex justify-center gap-2">{action}</div>}
@@ -106,58 +140,65 @@ export function ErrorState({ message, onRetry }: { message: string; onRetry?: ()
   );
 }
 
-const toneStyles = {
-  default: { value: 'text-ink', chip: 'bg-surface-2 text-ink-muted', glow: '' },
-  danger: {
-    value: 'text-sev1-fg',
-    chip: 'bg-sev1-bg text-sev1-fg',
-    glow: 'before:bg-[radial-gradient(18rem_8rem_at_100%_0%,rgb(244_63_94/0.14),transparent_70%)]',
-  },
-  warning: {
-    value: 'text-degraded-fg',
-    chip: 'bg-degraded-bg text-degraded-fg',
-    glow: 'before:bg-[radial-gradient(18rem_8rem_at_100%_0%,rgb(245_158_11/0.14),transparent_70%)]',
-  },
-  good: {
-    value: 'text-resolved-fg',
-    chip: 'bg-resolved-bg text-resolved-fg',
-    glow: 'before:bg-[radial-gradient(18rem_8rem_at_100%_0%,rgb(16_185_129/0.14),transparent_70%)]',
-  },
+const toneValue = {
+  default: 'text-ink',
+  danger: 'text-sev1-fg',
+  warning: 'text-degraded-fg',
+  good: 'text-resolved-fg',
 } as const;
 
 export function StatCard({
   label,
   value,
   hint,
-  icon,
   tone = 'default',
 }: {
   label: string;
   value: React.ReactNode;
   hint?: React.ReactNode;
   icon?: React.ReactNode;
-  tone?: keyof typeof toneStyles;
+  tone?: keyof typeof toneValue;
 }) {
-  const t = toneStyles[tone];
   return (
-    <Card
-      className={`relative overflow-hidden p-4 before:pointer-events-none before:absolute before:inset-0 ${t.glow}`}
-    >
-      <div className="relative flex items-start justify-between gap-2">
-        <p className="text-sm text-ink-muted">{label}</p>
-        {icon && (
-          <span
-            aria-hidden="true"
-            className={`grid h-8 w-8 place-items-center rounded-lg ${t.chip}`}
-          >
-            {icon}
-          </span>
-        )}
-      </div>
-      <p className={`relative mt-2 text-[2rem] font-semibold leading-none tabular-nums ${t.value}`}>
+    <Card className="p-5">
+      <p className="text-[13px] text-ink-muted">{label}</p>
+      <p
+        className={`mt-2 text-[2rem] font-semibold leading-none tabular-nums tracking-tight ${toneValue[tone]}`}
+      >
         {value}
       </p>
-      {hint && <p className="relative mt-2 text-xs text-ink-subtle">{hint}</p>}
+      {hint && <p className="mt-2 text-xs text-ink-subtle">{hint}</p>}
+    </Card>
+  );
+}
+
+/** Several figures in one card, divided by hairlines: reads as one summary instead of four boxes. */
+export function StatStrip({
+  items,
+}: {
+  items: {
+    label: string;
+    value: React.ReactNode;
+    hint?: React.ReactNode;
+    tone?: keyof typeof toneValue;
+  }[];
+}) {
+  return (
+    <Card className="grid grid-cols-2 lg:grid-cols-4">
+      {items.map((it, i) => (
+        <div
+          key={it.label}
+          className={`p-5 ${i % 2 === 1 ? 'border-l border-line' : ''} ${i >= 2 ? 'border-t border-line lg:border-t-0' : ''} ${i > 0 ? 'lg:border-l lg:border-line' : ''}`}
+        >
+          <p className="text-[13px] text-ink-muted">{it.label}</p>
+          <p
+            className={`mt-2 text-[2rem] font-semibold leading-none tabular-nums tracking-tight ${toneValue[it.tone ?? 'default']}`}
+          >
+            {it.value}
+          </p>
+          {it.hint && <p className="mt-2 text-xs text-ink-subtle">{it.hint}</p>}
+        </div>
+      ))}
     </Card>
   );
 }
