@@ -10,6 +10,7 @@ import { useSocketConnected } from '@/lib/socket';
 import { useDismiss } from '@/lib/useDismiss';
 import { CommandPalette } from '../CommandPalette';
 import { Icon } from '../Icon';
+import { LogoMark } from '../LogoMark';
 import { NotificationBell } from '../NotificationBell';
 import { ThemeToggle } from '../ThemeToggle';
 
@@ -27,22 +28,7 @@ function Brand() {
       href="/"
       className="flex items-center gap-2.5 px-4 py-5 text-[17px] font-semibold tracking-tight text-ink"
     >
-      <span
-        aria-hidden="true"
-        className="relative grid h-8 w-8 place-items-center rounded-[10px] bg-gradient-to-br from-accent-600 to-[#8b5cf6] shadow-[0_0_24px_-4px_rgb(99_91_255/0.7),inset_0_1px_0_rgb(255_255_255/0.3)]"
-      >
-        <svg
-          viewBox="0 0 24 24"
-          className="h-4 w-4 text-white"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.6"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M3 12h4l3-8 4 16 3-8h4" />
-        </svg>
-      </span>
+      <LogoMark size={32} />
       OpsFlow
     </Link>
   );

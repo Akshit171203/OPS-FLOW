@@ -3,10 +3,11 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Activity, ArrowRight } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { motion } from 'motion/react';
 import { api, ApiError } from '@/lib/api';
 import { AuthCarousel } from '@/components/AuthCarousel';
+import { LogoMark } from '@/components/LogoMark';
 import { Button, ErrorText, inputClass, linkClass } from '@/components/ui';
 
 type Field = { name: string; label: string; type?: string; autoComplete?: string; hint?: string };
@@ -60,13 +61,8 @@ export function AuthForm({
           transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
           className="mx-auto w-full max-w-[26rem]"
         >
-          <div className="flex flex-col items-center text-center">
-            <span
-              aria-hidden="true"
-              className="grid h-14 w-14 place-items-center rounded-2xl bg-accent-600 shadow-[0_12px_32px_-10px_rgb(47_91_234/0.7)]"
-            >
-              <Activity className="h-6 w-6 text-white" strokeWidth={2.4} />
-            </span>
+          <div>
+            <LogoMark size={48} />
             <h1 className="mt-6 text-[1.75rem] font-semibold tracking-tight">{title}</h1>
             <p className="mt-1.5 text-sm text-ink-muted">{subtitle}</p>
           </div>
@@ -106,7 +102,7 @@ export function AuthForm({
 
           {extra}
 
-          <p className="mt-8 text-center text-sm text-ink-muted">
+          <p className="mt-8 text-sm text-ink-muted">
             {alt.prefix}{' '}
             <Link href={alt.href} className={`${linkClass} font-medium`}>
               {alt.text}
