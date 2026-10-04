@@ -1,14 +1,15 @@
 'use client';
 
-import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import type { RunbookDto } from '@opsflow/shared';
-import { linkClass, Pill } from '@/components/ui';
+import { Pill } from '@/components/ui';
 import {
+  BackLink,
   Card,
   ErrorState,
   LoadingRegion,
   PageHeader,
+  Panel,
   Skeleton,
   SkeletonLines,
 } from '@/components/feedback';
@@ -40,20 +41,14 @@ export default function RunbookPage() {
 
   return (
     <>
-      <p className="mb-2 text-sm">
-        <Link href="/runbooks" className={linkClass}>
-          ← Runbooks
-        </Link>
-      </p>
+      <BackLink href="/runbooks">Runbooks</BackLink>
       <PageHeader
         title={runbook.title}
         description={`Updated ${timeAgo(runbook.updatedAt)}`}
         actions={
           <>
             {runbook.serviceTag && (
-              <Pill className="border border-line bg-surface text-ink-muted">
-                {runbook.serviceTag}
-              </Pill>
+              <Pill className="bg-surface-2 text-ink-muted">{runbook.serviceTag}</Pill>
             )}
             <IndexStatusBadge status={runbook.indexStatus} />
           </>
@@ -70,14 +65,19 @@ export default function RunbookPage() {
           <p className="mt-1">{runbook.indexError}</p>
         </div>
       )}
-      <Card className="max-w-3xl p-5">
+      <Panel
+        headingId="runbook-body-h"
+        title="Content"
+        description={
+          runbook.indexStatus === 'INDEXED'
+            ? `${runbook.chunkCount} sections indexed ${runbook.indexedAt ? timeAgo(runbook.indexedAt) : ''}`
+            : 'Written in Markdown'
+        }
+        className="max-w-3xl"
+        bodyClassName="p-5"
+      >
         <Markdown source={runbook.content ?? ''} />
-      </Card>
-      <p className="mt-3 text-xs text-ink-subtle">
-        {runbook.indexStatus === 'INDEXED'
-          ? `${runbook.chunkCount} sections indexed ${runbook.indexedAt ? timeAgo(runbook.indexedAt) : ''}.`
-          : null}
-      </p>
+      </Panel>
     </>
   );
 }

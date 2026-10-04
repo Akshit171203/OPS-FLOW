@@ -5,15 +5,13 @@ import Link from 'next/link';
 import { roleRank, type Paginated, type ProjectDto, type ServiceHealthDto } from '@opsflow/shared';
 import { Button, Field, inputClass, ServiceStatusBadge } from '@/components/ui';
 import {
-  Card,
   EmptyState,
   ErrorState,
   LoadingRegion,
   PageHeader,
-  SectionHeading,
+  Panel,
   Skeleton,
 } from '@/components/feedback';
-import { StatusDot } from '@/components/StatusDot';
 import { useToast } from '@/components/toast';
 import { api } from '@/lib/api';
 import { percent, slugify, timeAgo } from '@/lib/format';
@@ -29,6 +27,7 @@ export default function ServicesPage() {
   const projects = useFetch<Paginated<ProjectDto>>('/api/projects?limit=100');
   const health = useFetch<{ services: ServiceHealthDto[] }>('/api/services/health');
   const [busy, setBusy] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
 
   const reload = () => {
     projects.reload();
@@ -82,65 +81,80 @@ export default function ServicesPage() {
   const loading = (projects.loading && !projects.data) || (health.loading && !health.data);
   const error = projects.error ?? health.error;
 
+  const healthyCount = services.filter((s) => s.status === 'HEALTHY').length;
+  const description = services.length
+    ? `${services.length} service${services.length === 1 ? '' : 's'} · ${healthyCount} healthy${services.length - healthyCount ? ` · ${services.length - healthyCount} need attention` : ''}`
+    : 'Health of everything you run, from the latest metrics snapshot.';
+
   return (
     <>
       <PageHeader
         title="Services"
-        description="Health of everything you run, from the latest metrics snapshot."
+        description={description}
+        actions={
+          isAdmin && (
+            <Button variant="secondary" onClick={() => setAdding((a) => !a)} aria-expanded={adding}>
+              {adding ? 'Close' : 'Add project or service'}
+            </Button>
+          )
+        }
       />
 
-      {isAdmin && (
-        <Card className="mb-6 p-4">
-          <SectionHeading>Add to your catalog</SectionHeading>
-          <div className="grid gap-6 sm:grid-cols-2">
-            <form onSubmit={createProject} className="space-y-3">
-              <Field label="New project name">
-                <input
-                  name="name"
-                  required
-                  maxLength={100}
-                  className={inputClass}
-                  placeholder="Platform"
-                />
-              </Field>
-              <Button loading={busy === 'project'} loadingText="Creating…">
-                Create project
-              </Button>
-            </form>
-            <form onSubmit={createService} className="space-y-3">
-              <Field label="Project">
-                <select
-                  name="projectId"
-                  required
-                  className={inputClass}
-                  disabled={projectItems.length === 0}
-                >
-                  {projectItems.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="New service name">
-                <input
-                  name="name"
-                  required
-                  maxLength={100}
-                  className={inputClass}
-                  placeholder="Payment Service"
-                />
-              </Field>
-              <Button
-                loading={busy === 'service'}
-                loadingText="Creating…"
+      {isAdmin && adding && (
+        <Panel
+          headingId="catalog-h"
+          title="Add to your catalog"
+          description="Projects group services; services are what you monitor"
+          className="mb-6"
+          bodyClassName="grid gap-8 p-5 sm:grid-cols-2"
+        >
+          <form onSubmit={createProject} className="space-y-3">
+            <Field label="New project name">
+              <input
+                name="name"
+                required
+                maxLength={100}
+                className={inputClass}
+                placeholder="Platform"
+              />
+            </Field>
+            <Button loading={busy === 'project'} loadingText="Creating…">
+              Create project
+            </Button>
+          </form>
+          <form onSubmit={createService} className="space-y-3">
+            <Field label="Project">
+              <select
+                name="projectId"
+                required
+                className={inputClass}
                 disabled={projectItems.length === 0}
               >
-                Create service
-              </Button>
-            </form>
-          </div>
-        </Card>
+                {projectItems.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label="New service name">
+              <input
+                name="name"
+                required
+                maxLength={100}
+                className={inputClass}
+                placeholder="Payment Service"
+              />
+            </Field>
+            <Button
+              loading={busy === 'service'}
+              loadingText="Creating…"
+              disabled={projectItems.length === 0}
+            >
+              Create service
+            </Button>
+          </form>
+        </Panel>
       )}
 
       {error && !health.data ? (
@@ -148,8 +162,8 @@ export default function ServicesPage() {
       ) : loading ? (
         <LoadingRegion label="Loading services">
           <div className="space-y-6">
-            <Skeleton className="h-40" />
-            <Skeleton className="h-40" />
+            <Skeleton className="h-48" />
+            <Skeleton className="h-48" />
           </div>
         </LoadingRegion>
       ) : projectItems.length === 0 ? (
@@ -157,8 +171,11 @@ export default function ServicesPage() {
           title="No projects yet"
           description={
             isAdmin
-              ? 'Create a project above, then add the services it contains.'
+              ? 'Create a project, then add the services it contains.'
               : 'Ask an admin to create a project and its services.'
+          }
+          action={
+            isAdmin ? <Button onClick={() => setAdding(true)}>Add a project</Button> : undefined
           }
         />
       ) : (
@@ -166,30 +183,32 @@ export default function ServicesPage() {
           {projectItems.map((p) => {
             const mine = services.filter((s) => s.projectName === p.name);
             return (
-              <section key={p.id} aria-label={`${p.name} services`}>
-                <SectionHeading>{p.name}</SectionHeading>
+              <Panel
+                key={p.id}
+                headingId={`project-${p.id}`}
+                title={p.name}
+                description={`${mine.length} service${mine.length === 1 ? '' : 's'}`}
+              >
                 {mine.length === 0 ? (
-                  <Card className="p-4 text-sm text-ink-muted">
-                    No services in this project yet.
-                  </Card>
+                  <p className="p-5 text-sm text-ink-muted">No services in this project yet.</p>
                 ) : (
-                  <Card className="overflow-x-auto overflow-y-hidden">
+                  <div className="overflow-x-auto">
                     <table className="w-full min-w-[34rem] text-left text-sm">
-                      <thead className="border-b border-line bg-surface-2/50 text-[11px] uppercase tracking-wider text-ink-subtle">
-                        <tr>
-                          <th scope="col" className="px-4 py-2 font-medium">
+                      <thead className="text-xs font-medium text-ink-subtle">
+                        <tr className="border-b border-line">
+                          <th scope="col" className="px-5 py-2.5 font-medium">
                             Service
                           </th>
-                          <th scope="col" className="px-4 py-2 font-medium">
+                          <th scope="col" className="px-5 py-2.5 font-medium">
                             Health
                           </th>
-                          <th scope="col" className="px-4 py-2 text-right font-medium">
+                          <th scope="col" className="px-5 py-2.5 text-right font-medium">
                             Error rate
                           </th>
-                          <th scope="col" className="px-4 py-2 text-right font-medium">
+                          <th scope="col" className="px-5 py-2.5 text-right font-medium">
                             Latency
                           </th>
-                          <th scope="col" className="px-4 py-2 text-right font-medium">
+                          <th scope="col" className="px-5 py-2.5 text-right font-medium">
                             Updated
                           </th>
                         </tr>
@@ -197,34 +216,33 @@ export default function ServicesPage() {
                       <tbody className="divide-y divide-line">
                         {mine.map((s) => (
                           <tr key={s.id} className="transition-colors hover:bg-surface-2/60">
-                            <th scope="row" className="px-4 py-3 font-medium">
+                            <th scope="row" className="px-5 py-3.5 font-medium">
                               <Link
                                 href={`/services/${s.id}`}
-                                className="inline-flex items-center gap-2.5 hover:text-accent-ink"
+                                className="hover:text-accent-ink hover:underline"
                               >
-                                <StatusDot status={s.status} />
                                 {s.name}
                               </Link>
                             </th>
-                            <td className="px-4 py-3">
+                            <td className="px-5 py-3.5">
                               <ServiceStatusBadge value={s.status} />
                             </td>
-                            <td className="px-4 py-3 text-right tabular-nums">
+                            <td className="px-5 py-3.5 text-right tabular-nums">
                               {s.latestMetric ? percent(s.latestMetric.errorRate) : '—'}
                             </td>
-                            <td className="px-4 py-3 text-right tabular-nums">
+                            <td className="px-5 py-3.5 text-right tabular-nums">
                               {s.latestMetric ? `${s.latestMetric.latencyMs} ms` : '—'}
                             </td>
-                            <td className="px-4 py-3 text-right text-ink-subtle">
+                            <td className="px-5 py-3.5 text-right text-ink-subtle">
                               {s.latestMetric ? timeAgo(s.latestMetric.capturedAt) : 'no data'}
                             </td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
-                  </Card>
+                  </div>
                 )}
-              </section>
+              </Panel>
             );
           })}
         </div>

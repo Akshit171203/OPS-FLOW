@@ -2,14 +2,15 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { BookOpen, ChevronRight } from 'lucide-react';
 import { roleRank, type Paginated, type RunbookDto } from '@opsflow/shared';
-import { Button, buttonClass, linkClass, Pill } from '@/components/ui';
+import { Button, buttonClass, Pill } from '@/components/ui';
 import {
-  Card,
   EmptyState,
   ErrorState,
   LoadingRegion,
   PageHeader,
+  Panel,
   Skeleton,
 } from '@/components/feedback';
 import { IndexStatusBadge } from '@/components/RunbookStatus';
@@ -94,31 +95,45 @@ export default function RunbooksPage() {
           }
         />
       ) : (
-        <Card>
+        <Panel
+          headingId="runbooks-h"
+          title="All runbooks"
+          description={`${list.data.items.length} runbook${list.data.items.length === 1 ? '' : 's'} · ${list.data.items.filter((r) => r.indexStatus === 'INDEXED').length} searchable by the AI analysis`}
+        >
           <ul className="divide-y divide-line">
             {list.data.items.map((r) => (
-              <li key={r.id} className="flex flex-wrap items-center justify-between gap-3 p-4">
-                <div className="min-w-0">
-                  <Link href={`/runbooks/${r.id}`} className={`${linkClass} font-medium`}>
-                    {r.title}
-                  </Link>
-                  <p className="mt-0.5 text-xs text-ink-subtle">
-                    {r.chunkCount} section{r.chunkCount === 1 ? '' : 's'} indexed · updated{' '}
-                    {timeAgo(r.updatedAt)}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  {r.serviceTag && (
-                    <Pill className="border border-line bg-surface text-ink-muted">
-                      {r.serviceTag}
-                    </Pill>
-                  )}
-                  <IndexStatusBadge status={r.indexStatus} />
-                </div>
+              <li key={r.id}>
+                <Link
+                  href={`/runbooks/${r.id}`}
+                  className="group flex flex-wrap items-center justify-between gap-3 px-5 py-4 transition-colors hover:bg-surface-2/60"
+                >
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span
+                      aria-hidden="true"
+                      className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-line text-ink-muted"
+                    >
+                      <BookOpen className="h-4 w-4" />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="truncate font-medium group-hover:text-accent-ink">{r.title}</p>
+                      <p className="mt-0.5 text-xs text-ink-subtle">
+                        {r.chunkCount} section{r.chunkCount === 1 ? '' : 's'} indexed · updated{' '}
+                        {timeAgo(r.updatedAt)}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {r.serviceTag && (
+                      <Pill className="bg-surface-2 text-ink-muted">{r.serviceTag}</Pill>
+                    )}
+                    <IndexStatusBadge status={r.indexStatus} />
+                    <ChevronRight className="h-4 w-4 text-ink-subtle" aria-hidden="true" />
+                  </div>
+                </Link>
               </li>
             ))}
           </ul>
-        </Card>
+        </Panel>
       )}
     </>
   );

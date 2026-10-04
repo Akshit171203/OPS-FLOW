@@ -1,3 +1,5 @@
+import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
 import { buttonClass, secondaryButtonClass } from './ui';
 
 /** Grey placeholder shown while data loads. Decorative: the surrounding region announces "Loading". */
@@ -200,6 +202,20 @@ export function StatStrip({
         </div>
       ))}
     </Card>
+  );
+}
+
+export function BackLink({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <p className="mb-3 text-sm">
+      <Link
+        href={href}
+        className="inline-flex items-center gap-1.5 text-ink-muted transition-colors hover:text-ink"
+      >
+        <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+        {children}
+      </Link>
+    </p>
   );
 }
 

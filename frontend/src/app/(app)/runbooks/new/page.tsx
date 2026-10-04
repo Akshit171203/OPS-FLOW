@@ -4,15 +4,8 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { roleRank, type RunbookDto } from '@opsflow/shared';
-import {
-  Button,
-  ErrorText,
-  Field,
-  inputClass,
-  linkClass,
-  secondaryButtonClass,
-} from '@/components/ui';
-import { Card, EmptyState, PageHeader } from '@/components/feedback';
+import { Button, ErrorText, Field, inputClass, secondaryButtonClass } from '@/components/ui';
+import { BackLink, EmptyState, PageHeader, Panel } from '@/components/feedback';
 import { useToast } from '@/components/toast';
 import { api, ApiError } from '@/lib/api';
 import { useMe } from '@/lib/me-context';
@@ -65,14 +58,19 @@ export default function NewRunbookPage() {
 
   return (
     <>
-      <p className="mb-2 text-sm">
-        <Link href="/runbooks" className={linkClass}>
-          ← Runbooks
-        </Link>
-      </p>
-      <PageHeader title="New runbook" />
-      <Card className="max-w-3xl p-5">
-        <form onSubmit={onSubmit} className="space-y-4">
+      <BackLink href="/runbooks">Runbooks</BackLink>
+      <PageHeader
+        title="New runbook"
+        description="Write how to diagnose and fix a known problem. The AI analysis searches these."
+      />
+      <Panel
+        headingId="new-runbook-h"
+        title="Runbook"
+        description="Markdown, one section per heading"
+        className="max-w-3xl"
+        bodyClassName="p-5"
+      >
+        <form onSubmit={onSubmit} className="space-y-5">
           <Field label="Title">
             <input
               name="title"
@@ -116,7 +114,7 @@ export default function NewRunbookPage() {
             </Link>
           </div>
         </form>
-      </Card>
+      </Panel>
     </>
   );
 }

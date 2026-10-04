@@ -13,12 +13,11 @@ import {
 } from '@opsflow/shared';
 import { CodeBlock } from '@/components/CodeBlock';
 import {
-  Card,
   EmptyState,
   ErrorState,
   LoadingRegion,
   PageHeader,
-  SectionHeading,
+  Panel,
   Skeleton,
 } from '@/components/feedback';
 import { useToast } from '@/components/toast';
@@ -47,6 +46,7 @@ export default function IntegrationsPage() {
   const [confirmRevoke, setConfirmRevoke] = useState<string | null>(null);
   const [revoking, setRevoking] = useState<string | null>(null);
   const [snippetId, setSnippetId] = useState('deploy');
+  const [showForm, setShowForm] = useState(false);
   const [origin, setOrigin] = useState('https://your-opsflow-url');
   useEffect(() => setOrigin(window.location.origin), []);
 
@@ -113,6 +113,8 @@ export default function IntegrationsPage() {
   const snippets = buildSnippets(origin, created?.key ?? 'YOUR_API_KEY', slug);
   const snippet = snippets.find((s) => s.id === snippetId)!;
 
+  const formOpen = showForm || (keys.data?.keys.length === 0 && !created);
+
   return (
     <>
       <PageHeader
@@ -120,216 +122,241 @@ export default function IntegrationsPage() {
         description="Connect your own systems so deployments, logs, metrics and alerts arrive without anyone typing them in."
       />
 
-      <section aria-labelledby="keys-h" className="mb-10">
-        <SectionHeading>
-          <span id="keys-h">API keys</span>
-        </SectionHeading>
-
-        {created && (
-          <div role="alert" className="mb-4 rounded-lg border border-notice-line bg-notice-bg p-4">
-            <p className="font-medium text-notice-fg">
-              Copy your new key now. You will not be able to see it again.
-            </p>
-            <p className="mt-1 text-sm text-notice-fg">
-              Anyone with this key can send data into <strong>{me.organization.name}</strong> as “
-              {created.name}”. Store it as a secret, never in code.
-            </p>
-            <div className="mt-3">
-              <CodeBlock code={created.key} label="API key" />
-            </div>
-            <button className={`${secondaryButtonClass} mt-3`} onClick={() => setCreated(null)}>
-              I have saved it
-            </button>
-          </div>
-        )}
-
-        <Card className="mb-4 p-4">
-          <form onSubmit={create} className="grid gap-4 sm:grid-cols-2">
-            <Field
-              label="Name"
-              hint="What will use this key, for example “payment-ci” or “grafana”."
+      <div className="space-y-6">
+        <Panel
+          headingId="keys-h"
+          title="API keys"
+          description="Machine credentials your systems use to send alerts, deployments, logs and metrics"
+          action={
+            <Button
+              variant="secondary"
+              onClick={() => setShowForm((f) => !f)}
+              aria-expanded={formOpen}
             >
-              <input
-                name="name"
-                required
-                maxLength={100}
-                className={inputClass}
-                placeholder="payment-ci"
-              />
-            </Field>
-            <Field
-              label="Limit to one service (optional)"
-              hint="A tied key can only act on that service, and can leave the service out of requests."
-            >
-              <select name="serviceId" className={inputClass}>
-                <option value="">Any service</option>
-                {services.data?.items.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.projectName} / {s.name}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <fieldset className="sm:col-span-2">
-              <legend className="text-sm font-medium">Permissions</legend>
-              <div className="mt-2 flex flex-wrap gap-x-6 gap-y-2">
-                {apiKeyScopes.map((s) => (
-                  <label key={s} className="flex items-center gap-2 text-sm">
-                    <input
-                      type="checkbox"
-                      name={`scope-${s}`}
-                      defaultChecked
-                      className="h-4 w-4 accent-accent-600"
-                    />
-                    <span>
-                      <span className="font-medium">{s}</span>{' '}
-                      <span className="text-ink-muted">— {SCOPE_HELP[s]}</span>
-                    </span>
-                  </label>
-                ))}
+              {formOpen ? 'Close' : 'New API key'}
+            </Button>
+          }
+        >
+          {created && (
+            <div role="alert" className="m-5 rounded-lg border border-notice-line bg-notice-bg p-4">
+              <p className="font-medium text-notice-fg">
+                Copy your new key now. You will not be able to see it again.
+              </p>
+              <p className="mt-1 text-sm text-notice-fg">
+                Anyone with this key can send data into <strong>{me.organization.name}</strong> as “
+                {created.name}”. Store it as a secret, never in code.
+              </p>
+              <div className="mt-3">
+                <CodeBlock code={created.key} label="API key" />
               </div>
-            </fieldset>
-            <div className="sm:col-span-2">
-              <Button loading={creating} loadingText="Creating…">
-                Create API key
-              </Button>
+              <button className={`${secondaryButtonClass} mt-3`} onClick={() => setCreated(null)}>
+                I have saved it
+              </button>
             </div>
-          </form>
-        </Card>
+          )}
 
-        {keys.error && !keys.data ? (
-          <ErrorState message={keys.error} onRetry={keys.reload} />
-        ) : !keys.data ? (
-          <LoadingRegion label="Loading keys">
-            <Skeleton className="h-24" />
-          </LoadingRegion>
-        ) : keys.data.keys.length === 0 ? (
-          <EmptyState
-            title="No API keys yet"
-            description="Create one above, then use it in the snippets below."
-          />
-        ) : (
-          <Card className="overflow-x-auto">
-            <table className="w-full min-w-[40rem] text-left text-sm">
-              <thead className="border-b border-line text-xs uppercase tracking-wide text-ink-muted">
-                <tr>
-                  <th scope="col" className="px-4 py-2 font-medium">
-                    Name
-                  </th>
-                  <th scope="col" className="px-4 py-2 font-medium">
-                    Key
-                  </th>
-                  <th scope="col" className="px-4 py-2 font-medium">
-                    Can
-                  </th>
-                  <th scope="col" className="px-4 py-2 font-medium">
-                    Last used
-                  </th>
-                  <th scope="col" className="px-4 py-2 text-right font-medium">
-                    <span className="sr-only">Actions</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-line">
-                {keys.data.keys.map((k) => (
-                  <tr key={k.id} className={k.revokedAt ? 'text-ink-subtle' : undefined}>
-                    <th scope="row" className="px-4 py-3 font-medium">
-                      {k.name}
-                      {k.serviceName && (
-                        <span className="block text-xs font-normal text-ink-muted">
-                          only {k.serviceName}
-                        </span>
-                      )}
-                    </th>
-                    <td className="px-4 py-3 font-mono text-xs">{k.keyPrefix}…</td>
-                    <td className="px-4 py-3">
-                      <span className="flex flex-wrap gap-1">
-                        {k.scopes.map((s) => (
-                          <Pill key={s} className="border border-line bg-surface text-ink-muted">
-                            {s}
-                          </Pill>
-                        ))}
+          {formOpen && (
+            <form onSubmit={create} className="grid gap-5 border-b border-line p-5 sm:grid-cols-2">
+              <Field
+                label="Name"
+                hint="What will use this key, for example “payment-ci” or “grafana”."
+              >
+                <input
+                  name="name"
+                  required
+                  maxLength={100}
+                  className={inputClass}
+                  placeholder="payment-ci"
+                />
+              </Field>
+              <Field
+                label="Limit to one service (optional)"
+                hint="A tied key can only act on that service, and can leave the service out of requests."
+              >
+                <select name="serviceId" className={inputClass}>
+                  <option value="">Any service</option>
+                  {services.data?.items.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.projectName} / {s.name}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <fieldset className="sm:col-span-2">
+                <legend className="text-sm font-medium">Permissions</legend>
+                <div className="mt-2 flex flex-wrap gap-x-6 gap-y-2">
+                  {apiKeyScopes.map((s) => (
+                    <label key={s} className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        name={`scope-${s}`}
+                        defaultChecked
+                        className="h-4 w-4 accent-accent-600"
+                      />
+                      <span>
+                        <span className="font-medium">{s}</span>{' '}
+                        <span className="text-ink-muted">— {SCOPE_HELP[s]}</span>
                       </span>
-                    </td>
-                    <td className="px-4 py-3 text-ink-muted">
-                      {k.lastUsedAt ? timeAgo(k.lastUsedAt) : 'never'}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      {k.revokedAt ? (
-                        <Pill className="bg-closed-bg text-closed-fg">Revoked</Pill>
-                      ) : confirmRevoke === k.id ? (
-                        <span className="inline-flex gap-2">
-                          <Button
-                            variant="secondary"
-                            loading={revoking === k.id}
-                            loadingText="Revoking…"
-                            onClick={() => revoke(k.id, k.name)}
-                          >
-                            Yes, revoke
-                          </Button>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+              <div className="sm:col-span-2">
+                <Button loading={creating} loadingText="Creating…">
+                  Create API key
+                </Button>
+              </div>
+            </form>
+          )}
+
+          {keys.error && !keys.data ? (
+            <div className="p-5">
+              <ErrorState message={keys.error} onRetry={keys.reload} />
+            </div>
+          ) : !keys.data ? (
+            <div className="p-5">
+              <LoadingRegion label="Loading keys">
+                <Skeleton className="h-24" />
+              </LoadingRegion>
+            </div>
+          ) : keys.data.keys.length === 0 ? (
+            <p className="p-5 text-sm text-ink-muted">
+              No API keys yet. Create one above, then use it in the snippets below.
+            </p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[40rem] text-left text-sm">
+                <thead className="text-xs font-medium text-ink-subtle">
+                  <tr className="border-b border-line">
+                    <th scope="col" className="px-5 py-2.5 font-medium">
+                      Name
+                    </th>
+                    <th scope="col" className="px-5 py-2.5 font-medium">
+                      Key
+                    </th>
+                    <th scope="col" className="px-5 py-2.5 font-medium">
+                      Can
+                    </th>
+                    <th scope="col" className="px-5 py-2.5 font-medium">
+                      Last used
+                    </th>
+                    <th scope="col" className="px-5 py-2.5 text-right font-medium">
+                      <span className="sr-only">Actions</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-line">
+                  {keys.data.keys.map((k) => (
+                    <tr key={k.id} className={k.revokedAt ? 'text-ink-subtle' : undefined}>
+                      <th scope="row" className="px-5 py-3.5 font-medium">
+                        {k.name}
+                        {k.serviceName && (
+                          <span className="block text-xs font-normal text-ink-muted">
+                            only {k.serviceName}
+                          </span>
+                        )}
+                      </th>
+                      <td className="px-5 py-3.5 font-mono text-xs">{k.keyPrefix}…</td>
+                      <td className="px-5 py-3.5">
+                        <span className="flex flex-wrap gap-1">
+                          {k.scopes.map((sc) => (
+                            <Pill key={sc} className="bg-surface-2 text-ink-muted">
+                              {sc}
+                            </Pill>
+                          ))}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3.5 text-ink-muted">
+                        {k.lastUsedAt ? timeAgo(k.lastUsedAt) : 'never'}
+                      </td>
+                      <td className="px-5 py-3.5 text-right">
+                        {k.revokedAt ? (
+                          <Pill className="bg-closed-bg text-closed-fg">Revoked</Pill>
+                        ) : confirmRevoke === k.id ? (
+                          <span className="inline-flex gap-2">
+                            <Button
+                              variant="secondary"
+                              loading={revoking === k.id}
+                              loadingText="Revoking…"
+                              onClick={() => revoke(k.id, k.name)}
+                            >
+                              Yes, revoke
+                            </Button>
+                            <button
+                              className={secondaryButtonClass}
+                              onClick={() => setConfirmRevoke(null)}
+                            >
+                              Cancel
+                            </button>
+                          </span>
+                        ) : (
                           <button
                             className={secondaryButtonClass}
-                            onClick={() => setConfirmRevoke(null)}
+                            onClick={() => setConfirmRevoke(k.id)}
+                            aria-label={`Revoke ${k.name}`}
                           >
-                            Cancel
+                            Revoke
                           </button>
-                        </span>
-                      ) : (
-                        <button
-                          className={secondaryButtonClass}
-                          onClick={() => setConfirmRevoke(k.id)}
-                          aria-label={`Revoke ${k.name}`}
-                        >
-                          Revoke
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </Card>
-        )}
-      </section>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Panel>
 
-      <section aria-labelledby="connect-h">
-        <SectionHeading>
-          <span id="connect-h">Connect your systems</span>
-        </SectionHeading>
-        <p className="mb-3 text-sm text-ink-muted">
-          {created
-            ? 'Your new key is filled in below.'
-            : 'Replace YOUR_API_KEY with a key from above.'}{' '}
-          Services are referred to by their slug, such as{' '}
-          <code className="rounded bg-surface-2 px-1 font-mono text-xs">{slug}</code>.
-        </p>
-        <div role="tablist" aria-label="Integration type" className="mb-3 flex flex-wrap gap-2">
-          {snippets.map((s) => (
-            <button
-              key={s.id}
-              role="tab"
-              aria-selected={snippetId === s.id}
-              onClick={() => setSnippetId(s.id)}
-              className={`rounded-md px-3 py-1.5 text-sm font-medium ${snippetId === s.id ? 'bg-accent-600 text-white' : 'border border-line bg-surface text-ink-muted hover:bg-surface-2'}`}
-            >
-              {s.title.split(' (')[0]}
-            </button>
-          ))}
-        </div>
-        <Card className="space-y-3 p-4" role="tabpanel">
-          <div>
-            <h3 className="font-medium">{snippet.title}</h3>
-            <p className="text-sm text-ink-muted">{snippet.description}</p>
+        <Panel
+          headingId="connect-h"
+          title="Connect your systems"
+          description={
+            <>
+              {created
+                ? 'Your new key is filled in below.'
+                : 'Replace YOUR_API_KEY with a key from above.'}{' '}
+              Services are referred to by their slug, such as{' '}
+              <code className="rounded bg-surface-2 px-1 font-mono text-xs">{slug}</code>.
+            </>
+          }
+          bodyClassName="space-y-5 p-5"
+        >
+          <div
+            role="tablist"
+            aria-label="Integration type"
+            className="inline-flex max-w-full flex-wrap gap-1 rounded-lg bg-surface-2 p-1"
+          >
+            {snippets.map((sn) => (
+              <button
+                key={sn.id}
+                role="tab"
+                aria-selected={snippetId === sn.id}
+                onClick={() => setSnippetId(sn.id)}
+                className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                  snippetId === sn.id
+                    ? 'bg-surface text-ink shadow-sm'
+                    : 'text-ink-muted hover:text-ink'
+                }`}
+              >
+                {sn.title.split(' (')[0]}
+              </button>
+            ))}
           </div>
-          <CodeBlock code={snippet.code} label={snippet.title} />
+          <div role="tabpanel" className="space-y-3">
+            <div>
+              <h3 className="font-medium">{snippet.title}</h3>
+              <p className="mt-0.5 text-sm text-ink-muted">{snippet.description}</p>
+            </div>
+            <CodeBlock code={snippet.code} label={snippet.title} />
+          </div>
           <p className="text-xs text-ink-subtle">
             Want to see it work without wiring anything up? Run{' '}
             <code className="rounded bg-surface-2 px-1 font-mono">pnpm demo:shop</code>: a small
             website that reports to OpsFlow and that you can crash on purpose. Details are in{' '}
             <code className="rounded bg-surface-2 px-1 font-mono">docs/INTEGRATIONS.md</code>.
           </p>
-        </Card>
-      </section>
+        </Panel>
+      </div>
     </>
   );
 }

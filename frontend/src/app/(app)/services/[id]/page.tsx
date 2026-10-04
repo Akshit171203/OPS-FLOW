@@ -16,12 +16,10 @@ import {
 } from '@opsflow/shared';
 import { ServiceStatusBadge, SeverityBadge, StatusBadge } from '@/components/ui';
 import {
-  Card,
-  EmptyState,
   ErrorState,
   LoadingRegion,
   PageHeader,
-  SectionHeading,
+  Panel,
   Skeleton,
   StatCard,
 } from '@/components/feedback';
@@ -145,111 +143,106 @@ export default function ServiceDetailPage() {
           : 'No metrics recorded for this service yet.'}
       </p>
 
-      <section aria-labelledby="trend-h" className="mt-8">
-        <SectionHeading>
-          <span id="trend-h">Last 24 hours</span>
-        </SectionHeading>
-        {series.error && !series.data ? (
-          <ErrorState message={series.error} onRetry={series.reload} />
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Card className="p-4">
-              <p className="mb-3 text-sm font-medium">Error rate</p>
-              {pts.length < 2 ? (
-                <p className="text-sm text-ink-subtle">Not enough data to draw this yet.</p>
-              ) : (
-                <AreaTrend
-                  id="error-rate"
-                  data={pts.map((p) => ({
-                    label: hourLabel(p.capturedAt),
-                    value: p.errorRate * 100,
-                  }))}
-                  unit="%"
-                  decimals={1}
-                  color="var(--color-sev1-fg)"
-                  summary={`Error rate over the last 24 hours, latest ${percent(pts[pts.length - 1]!.errorRate)}`}
-                />
-              )}
-            </Card>
-            <Card className="p-4">
-              <p className="mb-3 text-sm font-medium">Latency</p>
-              {pts.length < 2 ? (
-                <p className="text-sm text-ink-subtle">Not enough data to draw this yet.</p>
-              ) : (
-                <AreaTrend
-                  id="latency"
-                  data={pts.map((p) => ({ label: hourLabel(p.capturedAt), value: p.latencyMs }))}
-                  unit=" ms"
-                  summary={`Latency over the last 24 hours, latest ${Math.round(pts[pts.length - 1]!.latencyMs)} ms`}
-                />
-              )}
-            </Card>
-          </div>
-        )}
-      </section>
+      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+        <Panel headingId="err-h" title="Error rate" description="Last 24 hours" bodyClassName="p-5">
+          {series.error && !series.data ? (
+            <ErrorState message={series.error} onRetry={series.reload} />
+          ) : pts.length < 2 ? (
+            <p className="text-sm text-ink-subtle">Not enough data to draw this yet.</p>
+          ) : (
+            <AreaTrend
+              id="error-rate"
+              data={pts.map((p) => ({ label: hourLabel(p.capturedAt), value: p.errorRate * 100 }))}
+              unit="%"
+              decimals={1}
+              color="var(--color-dot-bad)"
+              summary={`Error rate over the last 24 hours, latest ${percent(pts[pts.length - 1]!.errorRate)}`}
+            />
+          )}
+        </Panel>
+        <Panel headingId="lat-h" title="Latency" description="Last 24 hours" bodyClassName="p-5">
+          {series.error && !series.data ? (
+            <ErrorState message={series.error} onRetry={series.reload} />
+          ) : pts.length < 2 ? (
+            <p className="text-sm text-ink-subtle">Not enough data to draw this yet.</p>
+          ) : (
+            <AreaTrend
+              id="latency"
+              data={pts.map((p) => ({ label: hourLabel(p.capturedAt), value: p.latencyMs }))}
+              unit=" ms"
+              summary={`Latency over the last 24 hours, latest ${Math.round(pts[pts.length - 1]!.latencyMs)} ms`}
+            />
+          )}
+        </Panel>
+      </div>
 
-      <div className="mt-8 grid gap-6 lg:grid-cols-2">
-        <section aria-labelledby="dep-h" className="min-w-0">
-          <SectionHeading>
-            <span id="dep-h">Recent deployments</span>
-          </SectionHeading>
+      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+        <Panel
+          headingId="dep-h"
+          title="Recent deployments"
+          description="Latest releases of this service"
+        >
           {deployments.error && !deployments.data ? (
-            <ErrorState message={deployments.error} onRetry={deployments.reload} />
+            <div className="p-5">
+              <ErrorState message={deployments.error} onRetry={deployments.reload} />
+            </div>
           ) : deployments.data?.items.length === 0 ? (
-            <EmptyState title="No deployments recorded" />
+            <p className="p-5 text-sm text-ink-muted">No deployments recorded.</p>
           ) : (
-            <Card>
-              <ul className="divide-y divide-line">
-                {(deployments.data?.items ?? []).map((d) => (
-                  <li key={d.id} className="flex items-center justify-between gap-3 p-3 text-sm">
-                    <div className="min-w-0">
-                      <p className="font-medium">
-                        <span className="font-mono">{d.version}</span>{' '}
-                        <span className="text-xs font-normal text-ink-muted">{d.status}</span>
-                      </p>
-                      <p className="truncate text-xs text-ink-subtle">
-                        {d.commitSha.slice(0, 7)} · {d.environment} · {d.deployedBy}
-                      </p>
-                    </div>
-                    <span className="shrink-0 text-xs text-ink-subtle">
-                      {formatDate(d.deployedAt)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </Card>
+            <ul className="divide-y divide-line">
+              {(deployments.data?.items ?? []).map((d) => (
+                <li
+                  key={d.id}
+                  className="flex items-center justify-between gap-3 px-5 py-3.5 text-sm"
+                >
+                  <div className="min-w-0">
+                    <p className="font-medium">
+                      <span className="rounded-md bg-surface-2 px-1.5 py-0.5 font-mono text-xs">
+                        {d.version}
+                      </span>{' '}
+                      <span className="text-xs font-normal text-ink-muted">{d.status}</span>
+                    </p>
+                    <p className="mt-1 truncate text-xs text-ink-subtle">
+                      {d.commitSha.slice(0, 7)} · {d.environment} · {d.deployedBy}
+                    </p>
+                  </div>
+                  <span className="shrink-0 text-xs text-ink-subtle">
+                    {formatDate(d.deployedAt)}
+                  </span>
+                </li>
+              ))}
+            </ul>
           )}
-        </section>
+        </Panel>
 
-        <section aria-labelledby="inc-h" className="min-w-0">
-          <SectionHeading>
-            <span id="inc-h">Recent incidents</span>
-          </SectionHeading>
+        <Panel headingId="inc-h" title="Recent incidents" description="What went wrong here lately">
           {incidents.error && !incidents.data ? (
-            <ErrorState message={incidents.error} onRetry={incidents.reload} />
+            <div className="p-5">
+              <ErrorState message={incidents.error} onRetry={incidents.reload} />
+            </div>
           ) : incidents.data?.items.length === 0 ? (
-            <EmptyState title="No incidents for this service" description="That is a good sign." />
+            <p className="p-5 text-sm text-ink-muted">
+              No incidents for this service. That is a good sign.
+            </p>
           ) : (
-            <Card>
-              <ul className="divide-y divide-line">
-                {(incidents.data?.items ?? []).map((i) => (
-                  <li key={i.id}>
-                    <Link
-                      href={`/incidents/${i.id}`}
-                      className="flex items-center justify-between gap-3 p-3 hover:bg-surface-2"
-                    >
-                      <span className="min-w-0 truncate text-sm font-medium">{i.title}</span>
-                      <span className="flex shrink-0 gap-1.5">
-                        <SeverityBadge value={i.severity} />
-                        <StatusBadge value={i.status} />
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </Card>
+            <ul className="divide-y divide-line">
+              {(incidents.data?.items ?? []).map((i) => (
+                <li key={i.id}>
+                  <Link
+                    href={`/incidents/${i.id}`}
+                    className="flex items-center justify-between gap-3 px-5 py-3.5 transition-colors hover:bg-surface-2/60"
+                  >
+                    <span className="min-w-0 truncate text-sm font-medium">{i.title}</span>
+                    <span className="flex shrink-0 gap-1.5">
+                      <SeverityBadge value={i.severity} />
+                      <StatusBadge value={i.status} />
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
           )}
-        </section>
+        </Panel>
       </div>
     </>
   );

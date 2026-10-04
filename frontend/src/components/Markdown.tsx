@@ -101,7 +101,7 @@ export function Markdown({ source }: { source: string }) {
           return (
             <pre
               key={i}
-              className="overflow-x-auto rounded-md bg-slate-900 p-3 font-mono text-xs text-slate-100"
+              className="overflow-x-auto rounded-md bg-[#0d0d10] p-3 font-mono text-xs text-slate-100"
             >
               {b.text}
             </pre>
