@@ -34,7 +34,7 @@ const SLIDE_MS = 6000;
 /* ---------- widgets: miniatures of OpsFlow's own screens, on white cards ---------- */
 
 const card =
-  'theme-light auth-blue w-[11rem] shrink-0 rounded-xl bg-surface p-3 text-ink shadow-[0_10px_30px_-8px_rgb(0_0_0/0.6)] xl:w-[13.5rem]';
+  'theme-light auth-blue w-[12.5rem] shrink-0 rounded-xl bg-surface p-3 pr-12 text-ink shadow-[0_10px_30px_-8px_rgb(0_0_0/0.6)] xl:w-[15rem]';
 
 function CardTitle({ title, sub }: { title: string; sub?: string }) {
   return (
@@ -44,6 +44,33 @@ function CardTitle({ title, sub }: { title: string; sub?: string }) {
     </>
   );
 }
+
+const legendColor = {
+  accent: 'bg-accent-600',
+  ok: 'bg-dot-ok',
+  warn: 'bg-dot-warn',
+  bad: 'bg-dot-bad',
+} as const;
+
+const LegendMini = ({
+  title,
+  items,
+}: {
+  title: string;
+  items: readonly (readonly [string, keyof typeof legendColor])[];
+}) => (
+  <div className={card}>
+    <CardTitle title={title} />
+    <ul className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 text-[10px]">
+      {items.map(([label, color]) => (
+        <li key={label} className="flex items-center gap-1.5">
+          <span className={`h-0.5 w-3 rounded-full ${legendColor[color]}`} />
+          {label}
+        </li>
+      ))}
+    </ul>
+  </div>
+);
 
 const IncidentMini = () => (
   <div className={card}>
@@ -69,7 +96,7 @@ const HealthMini = () => (
           ['Order Service', 'HEALTHY'],
         ] as const
       ).map(([name, status]) => (
-        <li key={name} className="flex items-center justify-between text-[11px]">
+        <li key={name} className="flex items-center gap-3 text-[11px]">
           <span className="flex items-center gap-1.5">
             <StatusDot status={status} />
             {name}
@@ -111,7 +138,7 @@ const CausesMini = () => (
       ] as const
     ).map(([cause, pct], i) => (
       <div key={cause} className="mt-2">
-        <div className="flex justify-between gap-2 text-[10px]">
+        <div className="flex gap-2 text-[10px]">
           <span className="truncate">{cause}</span>
           <span className="tabular-nums text-ink-subtle">{pct}%</span>
         </div>
@@ -316,6 +343,15 @@ const slides: Slide[] = [
     text: 'Connect Alertmanager, Grafana or any webhook. OpsFlow opens the incident and links the deploy that caused it.',
     widgets: (
       <>
+        <LegendMini
+          title="Alert sources"
+          items={[
+            ['Alertmanager', 'accent'],
+            ['Grafana', 'ok'],
+            ['Webhook', 'warn'],
+            ['Deploy hook', 'bad'],
+          ]}
+        />
         <IncidentMini />
         <HealthMini />
         <DeployMini />
@@ -330,6 +366,15 @@ const slides: Slide[] = [
     text: 'Logs, metrics and your own runbooks, searched for you, with likely causes and how confident the answer is.',
     widgets: (
       <>
+        <LegendMini
+          title="Evidence sources"
+          items={[
+            ['Logs', 'bad'],
+            ['Metrics', 'accent'],
+            ['Runbooks', 'ok'],
+            ['Deployments', 'warn'],
+          ]}
+        />
         <CausesMini />
         <EvidenceMini />
         <StepsMini />
@@ -344,6 +389,15 @@ const slides: Slide[] = [
     text: 'Assign, discuss and resolve together. Every change is recorded in the timeline and the audit trail.',
     widgets: (
       <>
+        <LegendMini
+          title="Roles"
+          items={[
+            ['Owner', 'accent'],
+            ['Admin', 'ok'],
+            ['Engineer', 'warn'],
+            ['Viewer', 'bad'],
+          ]}
+        />
         <LifecycleMini />
         <TimelineMini />
         <CommentMini />
@@ -421,14 +475,14 @@ export function AuthCarousel() {
         >
           {/* stage: the tablet frame is taller than the stage, so its bottom is cropped */}
           <div className="relative flex-1 overflow-hidden" aria-hidden="true">
-            <div className="absolute inset-x-[6%] top-[9%] bottom-[-34%] rounded-tl-[3.25rem] border-l-[3px] border-t-[3px] border-white/25 bg-[#1b1b1d] shadow-[inset_0_0_80px_rgb(0_0_0/0.5)]">
+            <div className="absolute inset-x-[7%] top-[10%] bottom-[-34%] rounded-tl-[3.25rem] border-l-[3px] border-t-[3px] border-white/25 bg-[#1b1b1d] shadow-[inset_0_0_80px_rgb(0_0_0/0.5)]">
               <span className="absolute left-1/2 top-3.5 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-white/20" />
               <span className="absolute left-[18%] top-[-3px] h-[3px] w-28 rounded-b bg-white/35" />
               <span className="absolute left-[42%] top-[-3px] h-[3px] w-28 rounded-b bg-white/35" />
 
               <div className="absolute inset-0 flex overflow-hidden rounded-tl-[3.25rem]">
-                <div className="flex min-w-0 flex-1 flex-col justify-center pb-[18%] pl-[7%] pr-8">
-                  <h2 className="text-[clamp(2.1rem,3.7vw,4.2rem)] font-semibold leading-[1.04] tracking-tight">
+                <div className="flex min-w-0 flex-1 flex-col justify-center pb-[18%] pl-[7%] pr-6">
+                  <h2 className="text-[clamp(2rem,3.7vw,4rem)] font-semibold leading-[1.04] tracking-tight">
                     {slide.heading}
                   </h2>
                   <div className="mt-[clamp(1.75rem,6vh,4rem)] flex justify-between [@media(max-height:700px)]:hidden">
@@ -440,7 +494,7 @@ export function AuthCarousel() {
                         transition={{ delay: 0.25 + i * 0.06 }}
                       >
                         <Icon
-                          className="h-[clamp(1.5rem,2.3vw,2.5rem)] w-[clamp(1.5rem,2.3vw,2.5rem)] text-white"
+                          className="h-[clamp(1.2rem,1.8vw,1.9rem)] w-[clamp(1.2rem,1.8vw,1.9rem)] text-white"
                           strokeWidth={2}
                         />
                       </motion.span>
@@ -448,7 +502,9 @@ export function AuthCarousel() {
                   </div>
                 </div>
 
-                <div className="flex shrink-0 flex-col gap-3 pr-4 pt-4">{slide.widgets}</div>
+                <div className="-mr-12 -mt-9 flex shrink-0 flex-col gap-3 xl:-mr-14">
+                  {slide.widgets}
+                </div>
               </div>
             </div>
           </div>
