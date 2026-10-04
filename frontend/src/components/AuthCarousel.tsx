@@ -30,7 +30,7 @@ const SLIDE_MS = 6000;
 /* ---------- small widgets: white cards, like the dashboards they stand for ---------- */
 
 const card =
-  'last:[@media(max-height:820px)]:hidden theme-light auth-blue w-[13.5rem] shrink-0 rounded-xl bg-surface p-3 text-ink shadow-[0_10px_30px_-8px_rgb(0_0_0/0.6)]';
+  'last:[@media(max-height:820px)]:hidden theme-light auth-blue w-[11rem] shrink-0 xl:w-[13.5rem] rounded-xl bg-surface p-3 text-ink shadow-[0_10px_30px_-8px_rgb(0_0_0/0.6)]';
 
 function CardTitle({ title, sub }: { title: string; sub?: string }) {
   return (
@@ -322,7 +322,7 @@ export function AuthCarousel() {
 
               <div className="absolute inset-0 overflow-hidden rounded-tl-[3rem]">
                 <div className="absolute left-[8%] top-[24%] w-[84%]">
-                  <h2 className="max-w-[46%] text-[clamp(2.3rem,4vw,3.6rem)] font-semibold leading-[1.04] tracking-tight">
+                  <h2 className="max-w-[46%] text-[clamp(1.9rem,3.3vw,3.6rem)] font-semibold leading-[1.04] tracking-tight">
                     {slide.heading}
                   </h2>
                   <div className="mt-[clamp(1.5rem,5vh,3.5rem)] flex gap-x-[clamp(0.7rem,1.35vw,1.4rem)] [@media(max-height:760px)]:hidden">
