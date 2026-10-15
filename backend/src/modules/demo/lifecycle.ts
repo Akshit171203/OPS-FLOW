@@ -25,11 +25,19 @@ export async function ensureDemoData(): Promise<void> {
  */
 export function scheduleDemoReset(hours: number = config.DEMO_RESET_HOURS): () => void {
   if (hours <= 0) return () => undefined;
+  let running = false;
   const timer = setInterval(() => {
-    seed().then(
-      () => logger.info('demo mode: demo data reset'),
-      (err) => logger.error({ err }, 'demo mode: reset failed'),
-    );
+    // A reset deletes and recreates the demo organization; two at once would fight over the same rows.
+    if (running) return;
+    running = true;
+    seed()
+      .then(
+        () => logger.info('demo mode: demo data reset'),
+        (err) => logger.error({ err }, 'demo mode: reset failed'),
+      )
+      .finally(() => {
+        running = false;
+      });
   }, hours * 3_600_000);
   timer.unref();
   return () => clearInterval(timer);

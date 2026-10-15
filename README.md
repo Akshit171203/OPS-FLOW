@@ -10,13 +10,17 @@ Your services connect with an API key and a webhook. A monitoring alert (Alertma
 
 ## Screenshots
 
-![The dashboard: status, key figures, 7-day incident chart, service health, deployments and activity](docs/images/dashboard.png)
+![The overview: status, key figures, a 7-day incident chart, service health, deployments and activity](docs/images/dashboard.png)
 
-| Incident page                                                                                | Sign-in                                                               | Light theme                                                        |
-| -------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| ![An incident with its lifecycle, timeline and AI analysis](docs/images/incident-detail.png) | ![Sign-in with an auto-advancing product tour](docs/images/login.png) | ![The dashboard in the dark theme](docs/images/dashboard-dark.png) |
+| Incidents                                                                                | An incident                                                                                  | Services                                                                    |
+| ---------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| ![The incident list with status filters and severity colours](docs/images/incidents.png) | ![An incident with its lifecycle, timeline and AI analysis](docs/images/incident-detail.png) | ![Nine services in two projects with live health](docs/images/services.png) |
 
-Light and dark themes (toggle in the top bar), and `Ctrl/Cmd+K` opens a command palette to jump to pages and incidents. The incident above came from **Simulate payment outage** on the seeded demo data; its analysis is from the built-in offline analyzer, which the page labels as such.
+| Sign-in                                                               | Dark theme                                                        |
+| --------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| ![Sign-in with an auto-advancing product tour](docs/images/login.png) | ![The overview in the dark theme](docs/images/dashboard-dark.png) |
+
+The demo data tells a believable three-week story: past incidents with timelines, comments and the deployments that caused them, three incidents still open, metric spikes during each one, and log bursts. Light and dark themes (toggle in the top bar), and `Ctrl/Cmd+K` opens a command palette.
 
 ## What it does
 

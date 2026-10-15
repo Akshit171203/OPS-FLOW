@@ -113,7 +113,11 @@ export default function DashboardPage() {
   const quiet =
     d && d.openIncidents === 0 && d.recentActivity.length === 0 && d.recentDeployments.length === 0;
   const allClear = d && d.openIncidents === 0 && d.degradedServices.length === 0;
-  const allServices = services.data?.items ?? [];
+  // Worst first: the services that need attention should never hide below healthy ones
+  const rank = { DOWN: 0, DEGRADED: 1, UNKNOWN: 2, HEALTHY: 3 } as const;
+  const allServices = [...(services.data?.items ?? [])].sort(
+    (x, y) => rank[x.status] - rank[y.status] || x.name.localeCompare(y.name),
+  );
   const healthy = allServices.filter((s) => s.status === 'HEALTHY').length;
   const canCreate = roleRank[me.role] >= roleRank.ENGINEER;
 

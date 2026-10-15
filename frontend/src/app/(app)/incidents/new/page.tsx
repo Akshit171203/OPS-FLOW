@@ -28,6 +28,7 @@ import {
   PageHeader,
   Skeleton,
 } from '@/components/feedback';
+import { Select } from '@/components/Select';
 import { useToast } from '@/components/toast';
 import { api, ApiError } from '@/lib/api';
 import { useMe } from '@/lib/me-context';
@@ -118,13 +119,17 @@ export default function NewIncidentPage() {
       <Card className="max-w-2xl p-5">
         <form onSubmit={onSubmit} className="space-y-4">
           <Field label="Service">
-            <select name="serviceId" required className={inputClass}>
-              {services.data.items.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.projectName} / {s.name}
-                </option>
-              ))}
-            </select>
+            <Select
+              name="serviceId"
+              required
+              aria-label="Service"
+              defaultValue={services.data.items[0]?.id}
+              options={services.data.items.map((s) => ({
+                value: s.id,
+                label: s.name,
+                hint: s.projectName,
+              }))}
+            />
           </Field>
           <Field label="Title">
             <input
@@ -146,29 +151,39 @@ export default function NewIncidentPage() {
           </Field>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Severity" hint="SEV1 is the most serious.">
-              <select name="severity" defaultValue="SEV3" className={inputClass}>
-                {severities.map((s) => (
-                  <option key={s}>{s}</option>
-                ))}
-              </select>
+              <Select
+                name="severity"
+                aria-label="Severity"
+                defaultValue="SEV3"
+                options={severities.map((s) => ({ value: s, label: s }))}
+              />
             </Field>
             <Field label="Priority">
-              <select name="priority" defaultValue="MEDIUM" className={inputClass}>
-                {priorities.map((p) => (
-                  <option key={p}>{p}</option>
-                ))}
-              </select>
+              <Select
+                name="priority"
+                aria-label="Priority"
+                defaultValue="MEDIUM"
+                options={priorities.map((p) => ({
+                  value: p,
+                  label: p.charAt(0) + p.slice(1).toLowerCase(),
+                }))}
+              />
             </Field>
           </div>
           <Field label="Assignee (optional)">
-            <select name="assigneeId" className={inputClass}>
-              <option value="">Unassigned</option>
-              {members.data?.members.map((m) => (
-                <option key={m.userId} value={m.userId}>
-                  {m.name} ({m.role})
-                </option>
-              ))}
-            </select>
+            <Select
+              name="assigneeId"
+              aria-label="Assignee"
+              defaultValue=""
+              options={[
+                { value: '', label: 'Unassigned' },
+                ...(members.data?.members ?? []).map((m) => ({
+                  value: m.userId,
+                  label: m.name,
+                  hint: m.role.charAt(0) + m.role.slice(1).toLowerCase(),
+                })),
+              ]}
+            />
           </Field>
           <ErrorText>{error}</ErrorText>
           <div className="flex gap-2">

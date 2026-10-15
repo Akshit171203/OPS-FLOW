@@ -20,6 +20,7 @@ import {
   Panel,
   Skeleton,
 } from '@/components/feedback';
+import { Select } from '@/components/Select';
 import { useToast } from '@/components/toast';
 import { Button, Field, inputClass, Pill, secondaryButtonClass } from '@/components/ui';
 import { api } from '@/lib/api';
@@ -173,14 +174,19 @@ export default function IntegrationsPage() {
                 label="Limit to one service (optional)"
                 hint="A tied key can only act on that service, and can leave the service out of requests."
               >
-                <select name="serviceId" className={inputClass}>
-                  <option value="">Any service</option>
-                  {services.data?.items.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.projectName} / {s.name}
-                    </option>
-                  ))}
-                </select>
+                <Select
+                  name="serviceId"
+                  aria-label="Limit to one service"
+                  defaultValue=""
+                  options={[
+                    { value: '', label: 'Any service' },
+                    ...(services.data?.items ?? []).map((s) => ({
+                      value: s.id,
+                      label: s.name,
+                      hint: s.projectName,
+                    })),
+                  ]}
+                />
               </Field>
               <fieldset className="sm:col-span-2">
                 <legend className="text-sm font-medium">Permissions</legend>

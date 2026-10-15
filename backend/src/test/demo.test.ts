@@ -7,6 +7,7 @@ import { db, pool } from '../db/client';
 import {
   auditLogs,
   deployments,
+  incidents,
   logs,
   metrics,
   organizationMembers,
@@ -27,11 +28,12 @@ beforeEach(async () => {
 const countOf = async (table: PgTable) => (await db.select({ n: count() }).from(table))[0]!.n;
 
 describe('seed', () => {
-  it('creates the demo organization with users per role, 5 services, a week of metrics and history', async () => {
+  it('creates the demo organization with users per role, nine services, three weeks of operations and a week of metrics', async () => {
     const summary = await seed();
-    expect(summary).toMatchObject({ services: 5, metrics: 5 * 7 * 24, deployments: 15 });
-    expect(summary.logs).toBeGreaterThanOrEqual(40);
-    expect(summary.logs).toBeLessThanOrEqual(60);
+    expect(summary).toMatchObject({ services: 9, incidents: 16 });
+    expect(summary.metrics).toBeGreaterThanOrEqual(9 * 7 * 24); // a week of hourly points plus spikes during incidents
+    expect(summary.deployments).toBeGreaterThanOrEqual(30);
+    expect(summary.logs).toBeGreaterThanOrEqual(300);
 
     const [org] = await db
       .select()
@@ -41,17 +43,90 @@ describe('seed', () => {
       .select()
       .from(organizationMembers)
       .where(eq(organizationMembers.organizationId, org!.id));
-    expect(members.map((m) => m.role).sort()).toEqual(['ADMIN', 'ENGINEER', 'OWNER', 'VIEWER']);
+    // four people plus the "Alertmanager" service account that opens alert-driven incidents
+    expect(members.map((m) => m.role).sort()).toEqual([
+      'ADMIN',
+      'ENGINEER',
+      'ENGINEER',
+      'OWNER',
+      'VIEWER',
+    ]);
     const names = (await db.select().from(services).where(eq(services.organizationId, org!.id)))
       .map((s) => s.slug)
       .sort();
     expect(names).toEqual([
+      'analytics-pipeline',
+      'api-gateway',
       'auth-service',
+      'inventory-service',
       'notification-service',
       'order-service',
       'payment-service',
+      'search-service',
       'user-service',
     ]);
+  });
+
+  it('the service account is hidden: it cannot sign in and is not listed as a member or an assignee', async () => {
+    await seed();
+    const login = await request(app)
+      .post('/api/auth/login')
+      .send({ email: 'demo-alertmanager@opsflow.demo', password: DEMO_PASSWORD });
+    expect(login.status).toBe(401);
+    const signedIn = await request(app)
+      .post('/api/auth/login')
+      .send({ email: 'demo-owner@opsflow.demo', password: DEMO_PASSWORD });
+    const list = await request(app).get('/api/members').set('cookie', cookieFrom(signedIn));
+    expect(list.status).toBe(200);
+    expect(JSON.stringify(list.body)).not.toContain('Alertmanager');
+    expect(list.body.members).toHaveLength(4);
+  });
+
+  it('opens with believable history: open and resolved incidents, linked deployments, comments and notifications', async () => {
+    await seed();
+    const signedIn = await request(app)
+      .post('/api/auth/login')
+      .send({ email: 'demo-owner@opsflow.demo', password: DEMO_PASSWORD });
+    const cookie = cookieFrom(signedIn);
+    const all = (await request(app).get('/api/incidents?limit=100').set('cookie', cookie)).body
+      .items;
+    const open = all.filter((i: { status: string }) => !['RESOLVED', 'CLOSED'].includes(i.status));
+    expect(all).toHaveLength(16);
+    expect(open.map((i: { status: string }) => i.status).sort()).toEqual([
+      'INVESTIGATING',
+      'MITIGATING',
+      'OPEN',
+    ]);
+    // a past incident has a full story: timeline, comments and the deployment that caused it
+    const closed = all.find(
+      (i: { status: string; title: string }) =>
+        i.status === 'CLOSED' && /Token refresh/.test(i.title),
+    );
+    const detail = (await request(app).get(`/api/incidents/${closed.id}`).set('cookie', cookie))
+      .body;
+    expect(detail.events.map((e: { eventType: string }) => e.eventType)).toEqual(
+      expect.arrayContaining([
+        'incident.created',
+        'incident.assigned',
+        'incident.deployment_linked',
+        'incident.comment_added',
+        'incident.status_changed',
+      ]),
+    );
+    expect(detail.comments.length).toBeGreaterThanOrEqual(2);
+    const deps = (
+      await request(app).get(`/api/incidents/${closed.id}/deployments`).set('cookie', cookie)
+    ).body.deployments;
+    expect(deps.some((d: { linked: boolean }) => d.linked)).toBe(true);
+    // the dashboard reflects it, and services with an open incident are degraded right now
+    const dash = (await request(app).get('/api/dashboard').set('cookie', cookie)).body;
+    expect(dash.openIncidents).toBe(3);
+    expect(dash.degradedServices.map((s: { name: string }) => s.name).sort()).toEqual([
+      'API Gateway',
+      'Search Service',
+    ]);
+    const notes = (await request(app).get('/api/notifications').set('cookie', cookie)).body;
+    expect(notes.items.length).toBeGreaterThan(0);
   });
 
   it('is repeatable: running it twice leaves exactly one demo organization', async () => {
@@ -60,8 +135,15 @@ describe('seed', () => {
     expect(
       await db.select().from(organizations).where(eq(organizations.name, DEMO_ORG_NAME)),
     ).toHaveLength(1);
-    expect(await countOf(metrics)).toBe(5 * 7 * 24);
-    expect(await countOf(deployments)).toBe(15);
+    const first = {
+      metrics: await countOf(metrics),
+      deployments: await countOf(deployments),
+      incidents: await countOf(incidents),
+    };
+    await seed();
+    expect(await countOf(metrics)).toBe(first.metrics); // the same run twice gives the same data, not a pile-up
+    expect(await countOf(deployments)).toBe(first.deployments);
+    expect(await countOf(incidents)).toBe(first.incidents);
   });
 
   it('the seeded users can sign in with the documented password', async () => {

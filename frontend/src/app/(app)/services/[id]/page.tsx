@@ -25,6 +25,7 @@ import {
 } from '@/components/feedback';
 import { AreaTrend } from '@/components/charts';
 import { StatusDot } from '@/components/StatusDot';
+import { Select } from '@/components/Select';
 import { useToast } from '@/components/toast';
 import { api } from '@/lib/api';
 import { formatDate, percent, timeAgo } from '@/lib/format';
@@ -102,15 +103,17 @@ export default function ServiceDetailPage() {
           isAdmin ? (
             <label className="flex items-center gap-2 text-sm">
               <span className="text-ink-muted">Status</span>
-              <select
+              <Select
+                size="sm"
+                width="w-36"
+                aria-label="Service status"
                 value={s.status}
-                onChange={(e) => setStatus(e.target.value as ServiceStatus)}
-                className="rounded-lg border border-line-strong bg-surface px-2.5 py-1.5 text-sm transition focus:border-accent-600 focus:outline-none focus:ring-2 focus:ring-accent-600/25"
-              >
-                {serviceStatuses.map((st) => (
-                  <option key={st}>{st}</option>
-                ))}
-              </select>
+                onChange={(v) => setStatus(v as ServiceStatus)}
+                options={serviceStatuses.map((st) => ({
+                  value: st,
+                  label: st.charAt(0) + st.slice(1).toLowerCase(),
+                }))}
+              />
             </label>
           ) : (
             <ServiceStatusBadge value={s.status} />

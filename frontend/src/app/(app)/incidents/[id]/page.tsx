@@ -23,6 +23,7 @@ import {
 import { DeploymentsPanel, LogsPanel, MetricsLine } from '@/components/IncidentPanels';
 import { eventIcon } from '@/components/eventIcon';
 import { LifecycleStepper } from '@/components/LifecycleStepper';
+import { Select } from '@/components/Select';
 import { useToast } from '@/components/toast';
 import {
   Button,
@@ -89,7 +90,7 @@ function DetailSkeleton() {
         <Skeleton className="mb-3 h-8 w-2/3" />
         <SkeletonLines lines={2} />
       </Card>
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="min-w-0 space-y-6 lg:col-span-2">
           <Skeleton className="h-48" />
           <Skeleton className="h-40" />
@@ -182,7 +183,7 @@ export default function IncidentDetailPage() {
       </p>
 
       {/* The header stays in view on wide screens so status and actions are always at hand */}
-      <header className="card-surface relative z-20 mb-6 rounded-xl p-5 lg:sticky lg:top-16">
+      <header className="card-surface relative z-20 mb-6 min-w-0 rounded-xl p-5 lg:sticky lg:top-16">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
             <h1 className="text-xl font-semibold tracking-tight sm:text-[1.6rem]">
@@ -211,26 +212,25 @@ export default function IncidentDetailPage() {
         </div>
 
         <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-line pt-4">
-          <label className="flex items-center gap-2 text-sm">
+          <div className="flex items-center gap-2 text-sm">
             <span className="text-ink-muted">Assignee</span>
             {canWrite ? (
-              <select
+              <Select
+                size="sm"
+                width="w-48"
+                aria-label="Assignee"
                 value={incident.assignee?.id ?? ''}
                 disabled={busy}
-                onChange={(e) => assign(e.target.value)}
-                className="rounded-lg border border-line-strong bg-surface px-2.5 py-1.5 text-sm transition focus:border-accent-600 focus:outline-none focus:ring-2 focus:ring-accent-600/25"
-              >
-                <option value="">Unassigned</option>
-                {members.data?.members.map((m) => (
-                  <option key={m.userId} value={m.userId}>
-                    {m.name}
-                  </option>
-                ))}
-              </select>
+                onChange={assign}
+                options={[
+                  { value: '', label: 'Unassigned' },
+                  ...(members.data?.members ?? []).map((m) => ({ value: m.userId, label: m.name })),
+                ]}
+              />
             ) : (
               <span className="font-medium">{incident.assignee?.name ?? 'Unassigned'}</span>
             )}
-          </label>
+          </div>
           {canWrite && incident.allowedNextStatuses.length > 0 && (
             <div
               className="flex flex-wrap items-center gap-2 text-sm"

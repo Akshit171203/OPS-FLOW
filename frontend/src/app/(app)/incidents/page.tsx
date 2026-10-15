@@ -16,7 +16,6 @@ import {
 import {
   Button,
   buttonClass,
-  inputClass,
   Pill,
   secondaryButtonClass,
   SeverityBadge,
@@ -30,6 +29,7 @@ import {
   PageHeader,
   Skeleton,
 } from '@/components/feedback';
+import { Select } from '@/components/Select';
 import { useToast } from '@/components/toast';
 import { api } from '@/lib/api';
 import { timeAgo } from '@/lib/format';
@@ -46,31 +46,6 @@ const sevBar = {
   SEV3: 'bg-sev3-fg',
   SEV4: 'bg-sev4-fg',
 } as const;
-
-function FilterSelect({
-  label,
-  value,
-  onChange,
-  children,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="block">
-      <span className="sr-only">{label}</span>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className={`${inputClass} py-1.5`}
-      >
-        {children}
-      </select>
-    </label>
-  );
-}
 
 export default function IncidentsPage() {
   usePageTitle('Incidents');
@@ -167,20 +142,26 @@ export default function IncidentsPage() {
           );
         })}
         <div className="ml-auto grid w-full grid-cols-2 gap-2 sm:w-auto sm:grid-cols-[10rem_12rem]">
-          <FilterSelect label="Severity" value={filters.severity} onChange={setFilter('severity')}>
-            <option value="">All severities</option>
-            {severities.map((sv) => (
-              <option key={sv}>{sv}</option>
-            ))}
-          </FilterSelect>
-          <FilterSelect label="Service" value={filters.serviceId} onChange={setFilter('serviceId')}>
-            <option value="">All services</option>
-            {services.data?.items.map((sv) => (
-              <option key={sv.id} value={sv.id}>
-                {sv.name}
-              </option>
-            ))}
-          </FilterSelect>
+          <Select
+            size="sm"
+            aria-label="Filter by severity"
+            value={filters.severity}
+            onChange={setFilter('severity')}
+            options={[
+              { value: '', label: 'All severities' },
+              ...severities.map((sv) => ({ value: sv, label: sv })),
+            ]}
+          />
+          <Select
+            size="sm"
+            aria-label="Filter by service"
+            value={filters.serviceId}
+            onChange={setFilter('serviceId')}
+            options={[
+              { value: '', label: 'All services' },
+              ...(services.data?.items ?? []).map((sv) => ({ value: sv.id, label: sv.name })),
+            ]}
+          />
         </div>
       </div>
 

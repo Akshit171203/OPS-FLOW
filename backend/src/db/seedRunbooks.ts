@@ -106,4 +106,64 @@ Redeploy the previous version through the normal pipeline, not by editing runnin
 ## After the rollback
 Keep the incident open until metrics are stable, write down the suspected cause, and track the fix in a follow-up rather than redeploying the same release.`,
   },
+  {
+    title: 'Search latency and index merges',
+    serviceTag: 'search-service',
+    content: `# Search latency and index merges
+
+## Symptoms
+Search p95 latency above 500ms, suggestions timing out, or results that look stale after a reindex. Merges and reindexing are the usual causes of a latency climb that is not tied to a deployment.
+
+## First checks
+1. Check whether a segment merge or a reindex job is running. Large merges are disk-bound and slow every query that touches the shard.
+2. Compare latency per shard: one hot shard points at a merge; all shards point at a cluster-wide problem.
+3. Check whether the live alias points at the newest index. A finished reindex that never swapped the alias serves stale results.
+
+## Mitigation
+Throttle the merge during business hours, or move the reindex to the overnight window. Do not delete an index that the alias still references. Swapping an alias or restarting data nodes requires approval from the on-call lead.
+
+## Verification
+Latency back under 300ms for fifteen minutes, merge queue draining, alias pointing at the intended index.
+`,
+  },
+  {
+    title: 'API gateway 5xx and rate limits',
+    serviceTag: 'api-gateway',
+    content: `# API gateway 5xx and rate limits
+
+## Symptoms
+A rise in 502 or 429 responses at the gateway, partner traffic rejected, or errors that start right after a configuration or certificate change.
+
+## First checks
+1. Look at the latest gateway configuration release. Rule and certificate changes take effect immediately for all traffic.
+2. Separate 429 (our own limiter) from 502 (upstream problems). A 429 spike after a rule change means the rule is too broad.
+3. For 502s, check the upstream health and the TLS trust bundle. A rotated certificate that is missing from the bundle fails every request to that upstream.
+
+## Mitigation
+Roll back the rule or certificate change first and investigate afterwards. When a limiter keys by IP, a partner network behind one address is treated as a single client; key by API key instead. Changing limits for all customers requires approval.
+
+## Verification
+429 and 502 rates back to baseline, partner traffic flowing, no new alerts for ten minutes.
+`,
+  },
+  {
+    title: 'Inventory consistency checks',
+    serviceTag: 'inventory-service',
+    content: `# Inventory consistency checks
+
+## Symptoms
+Stock counts that differ from the warehouse system, reservations failing with 409 conflicts, or oversold items during a sale.
+
+## First checks
+1. Look for a batch import that ran twice. An expired lock lets a second run apply the same file again.
+2. Check the reservation version conflicts rate. A burst of 409s during a flash sale usually means optimistic locking is working but retries are too aggressive.
+3. Compare a sample of SKUs against the warehouse export before deciding anything is wrong.
+
+## Mitigation
+Pause the import job and reconcile from the warehouse export. Add a dedupe key per batch so a second run is a no-op. Do not edit stock rows by hand without a second person reviewing the change.
+
+## Verification
+Sampled SKUs match the warehouse, the 409 rate is back to baseline, and the import job has a lock that outlives its longest run.
+`,
+  },
 ];

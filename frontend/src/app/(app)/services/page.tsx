@@ -12,6 +12,7 @@ import {
   Panel,
   Skeleton,
 } from '@/components/feedback';
+import { Select } from '@/components/Select';
 import { useToast } from '@/components/toast';
 import { api } from '@/lib/api';
 import { percent, slugify, timeAgo } from '@/lib/format';
@@ -124,18 +125,15 @@ export default function ServicesPage() {
           </form>
           <form onSubmit={createService} className="space-y-3">
             <Field label="Project">
-              <select
+              <Select
+                key={projectItems[0]?.id ?? 'none'}
                 name="projectId"
                 required
-                className={inputClass}
+                aria-label="Project"
+                defaultValue={projectItems[0]?.id}
                 disabled={projectItems.length === 0}
-              >
-                {projectItems.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
+                options={projectItems.map((p) => ({ value: p.id, label: p.name }))}
+              />
             </Field>
             <Field label="New service name">
               <input
