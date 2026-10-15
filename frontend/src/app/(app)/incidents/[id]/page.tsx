@@ -182,7 +182,7 @@ export default function IncidentDetailPage() {
       </p>
 
       {/* The header stays in view on wide screens so status and actions are always at hand */}
-      <header className="card-surface relative z-10 mb-6 rounded-xl p-5 lg:sticky lg:top-16">
+      <header className="card-surface relative z-20 mb-6 rounded-xl p-5 lg:sticky lg:top-16">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
             <h1 className="text-xl font-semibold tracking-tight sm:text-[1.6rem]">
