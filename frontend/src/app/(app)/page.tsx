@@ -34,6 +34,14 @@ import { useReconnect, useSocketEvent } from '@/lib/socket';
 import { useFetch } from '@/lib/useFetch';
 import { usePageTitle } from '@/lib/usePageTitle';
 
+/** The headline under "Overview": open incidents first, otherwise degraded services (an incident can be resolved while its service is still recovering). */
+function statusLine(openIncidents: number, degradedServices: number): string {
+  if (openIncidents > 0) {
+    return `${openIncidents} open ${openIncidents === 1 ? 'incident needs' : 'incidents need'} attention`;
+  }
+  return `${degradedServices} ${degradedServices === 1 ? 'service is' : 'services are'} degraded`;
+}
+
 function DashboardSkeleton() {
   return (
     <LoadingRegion label="Loading dashboard">
@@ -125,7 +133,7 @@ export default function DashboardPage() {
                 ? 'Loading…'
                 : allClear
                   ? 'All systems operational'
-                  : `${d.openIncidents} open ${d.openIncidents === 1 ? 'incident needs' : 'incidents need'} attention`}
+                  : statusLine(d.openIncidents, d.degradedServices.length)}
             </span>
             <span aria-hidden="true">·</span>
             <span>{me.organization.name}</span>
