@@ -65,12 +65,13 @@ export function Select({
         if (!controlled) setInner(next);
         onChange?.(next);
       }}
-      name={name}
-      required={required}
       disabled={disabled}
     >
+      {/* The real value for form posts. Radix would submit its internal placeholder for "no selection", which the API rejects. */}
+      {name && <input type="hidden" name={name} value={current} />}
       <RS.Trigger
         id={id}
+        aria-required={required || undefined}
         aria-label={ariaLabel}
         className={`group inline-flex items-center justify-between gap-2 rounded-lg border border-line-strong bg-surface text-left text-sm text-ink shadow-sm transition hover:border-ink-subtle/60 focus:border-accent-600 focus:outline-none focus:ring-2 focus:ring-accent-600/25 disabled:cursor-not-allowed disabled:opacity-60 data-[state=open]:border-accent-600 data-[placeholder]:text-ink-subtle ${
           size === 'sm' ? 'h-8 px-2.5' : 'h-10 px-3'
