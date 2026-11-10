@@ -6,7 +6,7 @@
 
 Your services connect with an API key and a webhook. A monitoring alert (Alertmanager, Grafana or a plain POST) opens an incident by itself, links the deployments from the last hour, and every open browser updates live.
 
-> **Not deployed yet.** The code, Docker images and a Render Blueprint are ready ([docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)); I have not published a live URL. Run it locally in a few commands below.
+> **Live demo:** [opsflow-web-n0xs.onrender.com](https://opsflow-web-n0xs.onrender.com) (free Render tier, so the first load can take a minute to wake up). The Docker images and Render Blueprint are in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md), or run it locally with the steps below.
 
 ## Screenshots
 
