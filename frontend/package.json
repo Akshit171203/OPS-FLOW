@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@opsflow/shared": "workspace:*",
+    "@radix-ui/react-select": "^2.4.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "geist": "^1.7.2",

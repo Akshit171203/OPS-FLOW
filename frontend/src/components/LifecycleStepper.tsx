@@ -13,7 +13,7 @@ export function LifecycleStepper({
   return (
     <ol
       aria-label="Incident lifecycle"
-      className={`flex items-center gap-1 ${wrap ? 'flex-wrap gap-y-2' : 'overflow-x-auto pb-1'}`}
+      className={`relative flex items-center gap-1 ${wrap ? 'flex-wrap gap-y-2' : 'overflow-x-auto pb-1'}`}
     >
       {incidentStatuses.map((s, i) => {
         const done = i < current;

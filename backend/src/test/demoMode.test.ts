@@ -250,10 +250,36 @@ describe('demo data lifecycle', () => {
       return now && now !== before ? now : null;
     }, 8000);
     stop();
-    const after = await demoOrgId();
-    await sleep(400);
+    // a reset that was already running when we stopped may still finish (the seed takes about a second); wait until it has
+    let after = await demoOrgId();
+    for (let i = 0; i < 20; i++) {
+      await sleep(700);
+      const next = await demoOrgId();
+      if (next === after) break;
+      after = next;
+    }
+    await sleep(1500);
     expect(await demoOrgId()).toBe(after); // stopped: no further resets
     expect(scheduleDemoReset(0)()).toBeUndefined(); // 0 hours means never
+  }, 30_000);
+
+  it('never runs two resets at the same time, even when the schedule is faster than a reset', async () => {
+    await seed();
+    const orgs: string[] = [];
+    const stop = scheduleDemoReset(0.00001); // far shorter than one reset
+    const watch = setInterval(async () => {
+      const rows = await db
+        .select({ id: organizations.id })
+        .from(organizations)
+        .where(eq(organizations.name, DEMO_ORG_NAME));
+      orgs.push(String(rows.length));
+    }, 60);
+    await sleep(4500);
+    stop();
+    clearInterval(watch);
+    await sleep(2500); // let an in-flight reset finish
+    expect(orgs.every((n) => n === '0' || n === '1')).toBe(true); // never two demo organizations at once
+    expect(await demoOrgId()).toBeTruthy();
   }, 30_000);
 });
 

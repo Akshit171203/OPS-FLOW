@@ -13,6 +13,7 @@ import { api } from '@/lib/api';
 import { formatDate, percent } from '@/lib/format';
 import { useFetch } from '@/lib/useFetch';
 import { EmptyState, ErrorState, Panel, Skeleton } from './feedback';
+import { Select } from './Select';
 import { useToast, messageOf } from './toast';
 import { Button, Pill, ServiceStatusBadge, secondaryButtonClass } from './ui';
 
@@ -130,19 +131,20 @@ export function LogsPanel({
       title="Logs"
       description="This service's logs from shortly before the incident"
       action={
-        <label className="flex items-center gap-2 text-sm">
+        <div className="flex items-center gap-2 text-sm">
           <span className="text-ink-muted">Level</span>
-          <select
+          <Select
+            size="sm"
+            width="w-32"
+            aria-label="Log level"
             value={level}
-            onChange={(e) => setLevel(e.target.value as LogLevel | '')}
-            className="rounded-lg border border-line-strong bg-surface px-2.5 py-1.5 text-sm"
-          >
-            <option value="">All</option>
-            {logLevels.map((l) => (
-              <option key={l}>{l}</option>
-            ))}
-          </select>
-        </label>
+            onChange={(v) => setLevel(v as LogLevel | '')}
+            options={[
+              { value: '', label: 'All levels' },
+              ...logLevels.map((l) => ({ value: l, label: l })),
+            ]}
+          />
+        </div>
       }
     >
       {error && !items.length ? (

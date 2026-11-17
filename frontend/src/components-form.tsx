@@ -71,7 +71,8 @@ export function AuthForm({
             <p className="mt-1.5 text-sm text-ink-muted">{subtitle}</p>
           </div>
 
-          <form onSubmit={onSubmit} className="mt-8 space-y-5" noValidate={false}>
+          {/* method="post" is the safety net: if the form is submitted before the page's JavaScript has loaded, the browser must never fall back to GET, which would put the email and password in the address bar and in logs. */}
+          <form method="post" onSubmit={onSubmit} className="mt-8 space-y-5" noValidate={false}>
             {fields.map((f) => (
               <div key={f.name}>
                 <label htmlFor={f.name} className="block text-sm font-medium">

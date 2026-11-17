@@ -34,6 +34,14 @@ import { useReconnect, useSocketEvent } from '@/lib/socket';
 import { useFetch } from '@/lib/useFetch';
 import { usePageTitle } from '@/lib/usePageTitle';
 
+/** The headline under "Overview": open incidents first, otherwise degraded services (an incident can be resolved while its service is still recovering). */
+function statusLine(openIncidents: number, degradedServices: number): string {
+  if (openIncidents > 0) {
+    return `${openIncidents} open ${openIncidents === 1 ? 'incident needs' : 'incidents need'} attention`;
+  }
+  return `${degradedServices} ${degradedServices === 1 ? 'service is' : 'services are'} degraded`;
+}
+
 function DashboardSkeleton() {
   return (
     <LoadingRegion label="Loading dashboard">
@@ -105,7 +113,11 @@ export default function DashboardPage() {
   const quiet =
     d && d.openIncidents === 0 && d.recentActivity.length === 0 && d.recentDeployments.length === 0;
   const allClear = d && d.openIncidents === 0 && d.degradedServices.length === 0;
-  const allServices = services.data?.items ?? [];
+  // Worst first: the services that need attention should never hide below healthy ones
+  const rank = { DOWN: 0, DEGRADED: 1, UNKNOWN: 2, HEALTHY: 3 } as const;
+  const allServices = [...(services.data?.items ?? [])].sort(
+    (x, y) => rank[x.status] - rank[y.status] || x.name.localeCompare(y.name),
+  );
   const healthy = allServices.filter((s) => s.status === 'HEALTHY').length;
   const canCreate = roleRank[me.role] >= roleRank.ENGINEER;
 
@@ -125,7 +137,7 @@ export default function DashboardPage() {
                 ? 'Loading…'
                 : allClear
                   ? 'All systems operational'
-                  : `${d.openIncidents} open ${d.openIncidents === 1 ? 'incident needs' : 'incidents need'} attention`}
+                  : statusLine(d.openIncidents, d.degradedServices.length)}
             </span>
             <span aria-hidden="true">·</span>
             <span>{me.organization.name}</span>
