@@ -1,18 +1,25 @@
 import { eq } from 'drizzle-orm';
 import { db } from '../../db/client';
-import { users } from '../../db/schema';
+import { incidents, users } from '../../db/schema';
 import { seed } from '../../db/seed';
 import { config } from '../../lib/config';
 import { logger } from '../../lib/logger';
 import { DEMO_EMAIL_DOMAIN } from '../../middleware/demoGuard';
 
-/** First boot of a fresh demo database: create the demo organization if it is not there. */
+/**
+ * Boot-time check for the demo organization. A fresh database gets it created. One left over from an
+ * older release (the demo admin exists but there is no incident history) is rebuilt, so a redeploy
+ * never leaves visitors on an empty dashboard until the next scheduled reset.
+ */
 export async function ensureDemoData(): Promise<void> {
   const [existing] = await db
     .select({ id: users.id })
     .from(users)
     .where(eq(users.email, `demo-admin${DEMO_EMAIL_DOMAIN}`));
-  if (existing) return;
+  if (existing) {
+    const [hasHistory] = await db.select({ id: incidents.id }).from(incidents).limit(1);
+    if (hasHistory) return;
+  }
   logger.info('demo mode: seeding demo data');
   await seed();
   logger.info('demo mode: demo data ready');

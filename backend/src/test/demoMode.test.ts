@@ -4,7 +4,7 @@ import type { Worker } from 'bullmq';
 import request from './request';
 import { buildApp } from '../app';
 import { db, pool } from '../db/client';
-import { aiAnalyses, notifications, organizations } from '../db/schema';
+import { aiAnalyses, incidents, notifications, organizations } from '../db/schema';
 import { DEMO_ORG_NAME, seed } from '../db/seed';
 import { config } from '../lib/config';
 import { ensureDemoData, scheduleDemoReset } from '../modules/demo/lifecycle';
@@ -239,6 +239,15 @@ describe('demo data lifecycle', () => {
     expect(first).toBeDefined();
     await ensureDemoData();
     expect(await demoOrgId()).toBe(first); // not re-created
+  });
+
+  it('rebuilds a demo left empty by an older release', async () => {
+    await ensureDemoData();
+    const first = await demoOrgId();
+    await db.delete(incidents); // what the old seed left behind: services but no history
+    await ensureDemoData();
+    expect(await demoOrgId()).not.toBe(first);
+    expect((await db.select().from(incidents)).length).toBeGreaterThan(0);
   });
 
   it('rebuilds the demo on a schedule, and can be switched off', async () => {
